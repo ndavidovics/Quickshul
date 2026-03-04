@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#1a2d5a"/>
+  <!-- Star of David -->
+  <polygon points="32,8 38.9,20 45.8,20 39.5,30.5 45.8,41 38.9,41 32,53 25.1,41 18.2,41 24.5,30.5 18.2,20 25.1,20" fill="none" stroke="#c9a84c" stroke-width="2.2" stroke-linejoin="round"/>
+  <!-- Inner hexagon -->
+  <polygon points="32,18 37.5,27.5 32,37 26.5,27.5" fill="none" stroke="#c9a84c" stroke-width="1.4" opacity="0.6"/>
+</svg>
