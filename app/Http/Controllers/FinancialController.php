@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
+use App\Models\Pledge;
 use App\Services\AuditService;
 use App\Services\PayPalService;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class FinancialController extends Controller
     public function index()
     {
         $family   = auth()->user()->family;
-        $payments = $family ? $family->payments()->paginate(15, ['*'], 'pp') : collect();
+        $payments = $family ? $family->payments()->completed()->paginate(15, ['*'], 'pp') : collect();
         $pledges  = $family ? $family->pledges()->paginate(15, ['*'], 'lp') : collect();
 
         return view('member.financial', compact('family', 'payments', 'pledges'));
@@ -141,7 +142,6 @@ class FinancialController extends Controller
                 'notes'                => 'PayPal payment completed',
             ]);
 
-            $family->total_paid = Payment::where('family_id', $family->id)->completed()->sum('amount');
             $family->recalculateBalance();
 
             $this->audit->log('payment.paypal.completed', $payment, [], [], "PayPal payment of \${$payment->amount} completed for {$family->name}");
@@ -172,7 +172,11 @@ class FinancialController extends Controller
     public function donateForm()
     {
         $family = auth()->user()->family;
-        return view('member.donate', compact('family'));
+        $mode   = config('paypal.mode', 'live');
+        $paypalClientId = $mode === 'sandbox'
+            ? config('paypal.sandbox.client_id')
+            : config('paypal.live.client_id');
+        return view('member.donate2', compact('family', 'paypalClientId'));
     }
 
     public function donatePay(Request $request)
@@ -247,6 +251,8 @@ class FinancialController extends Controller
                 'notes'                 => 'PayPal donation completed',
             ]);
 
+            $family->recalculateBalance();
+
             $this->audit->log('payment.donation.completed', $payment, [], [], "Donation of \${$payment->amount} from {$family->name}: {$payment->description}");
 
             $qbItemId = $this->resolveDonationItemId($payment->description ?? '');
@@ -279,7 +285,7 @@ class FinancialController extends Controller
     // JS SDK endpoints (AJAX / JSON)
     // -------------------------------------------------------------------------
 
-    public function donateCreateOrder(Request $request): \Illuminate\Http\JsonResponse
+    public function applePayCreateOrder(Request $request): \Illuminate\Http\JsonResponse
     {
         $family = auth()->user()->family;
 
@@ -290,23 +296,89 @@ class FinancialController extends Controller
         $validated = $request->validate([
             'amount'      => 'required|numeric|min:1|max:99999',
             'description' => 'nullable|string|max:255',
+            'pledge_id'   => 'nullable|integer|exists:pledges,id',
         ]);
 
         $amount      = (float)$validated['amount'];
         $description = trim($validated['description'] ?? '') ?: 'General Donation';
+        $pledgeId    = $validated['pledge_id'] ?? null;
+
+        if ($pledgeId) {
+            $pledge = Pledge::where('id', $pledgeId)->where('family_id', $family->id)->first();
+            if (!$pledge) {
+                return response()->json(['error' => 'Invalid pledge.'], 422);
+            }
+        }
 
         try {
             $orderId = $this->paypal->createOrderForSdk($amount, $family->id, $description);
 
             Payment::create([
                 'family_id'       => $family->id,
+                'pledge_id'       => $pledgeId,
                 'amount'          => $amount,
                 'payment_date'    => today(),
                 'method'          => 'paypal',
                 'paypal_order_id' => $orderId,
                 'description'     => $description,
                 'status'          => 'pending',
-                'notes'           => 'Donation via JS SDK',
+                'notes'           => $pledgeId ? 'Apple Pay pledge payment' : 'Apple Pay donation',
+            ]);
+
+            return response()->json(['id' => $orderId]);
+        } catch (\Throwable $e) {
+            \Log::error('applePayCreateOrder error: ' . $e->getMessage());
+            return response()->json(['error' => 'Unable to create Apple Pay order: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function donateCreateOrder(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $family = auth()->user()->family;
+
+        if (!$family) {
+            return response()->json(['error' => 'No family account linked.'], 422);
+        }
+
+        $validated = $request->validate([
+            'amount'       => 'required|numeric|min:1|max:99999',
+            'description'  => 'nullable|string|max:255',
+            'pledge_id'    => 'nullable|integer|exists:pledges,id',
+            'donor_name'   => 'nullable|string|max:255',
+            'donor_email'  => 'nullable|email',
+        ]);
+
+        $amount      = (float)$validated['amount'];
+        $description = trim($validated['description'] ?? '') ?: 'General Donation';
+        $pledgeId    = $validated['pledge_id'] ?? null;
+
+        // Validate pledge belongs to this family
+        if ($pledgeId) {
+            $pledge = Pledge::where('id', $pledgeId)->where('family_id', $family->id)->first();
+            if (!$pledge) {
+                return response()->json(['error' => 'Invalid pledge.'], 422);
+            }
+        }
+
+        try {
+            // Gather payer information for PayPal pre-fill
+            $payerInfo = array_filter([
+                'name'  => $validated['donor_name'] ?? null,
+                'email' => $validated['donor_email'] ?? null,
+            ], fn($v) => !is_null($v));
+
+            $orderId = $this->paypal->createOrderForSdk($amount, $family->id, $description, $payerInfo);
+
+            Payment::create([
+                'family_id'       => $family->id,
+                'pledge_id'       => $pledgeId,
+                'amount'          => $amount,
+                'payment_date'    => today(),
+                'method'          => 'paypal',
+                'paypal_order_id' => $orderId,
+                'description'     => $description,
+                'status'          => 'pending',
+                'notes'           => $pledgeId ? 'Pledge payment via JS SDK' : 'Donation via JS SDK',
             ]);
 
             return response()->json(['id' => $orderId]);
@@ -343,26 +415,60 @@ class FinancialController extends Controller
                 'notes'                 => 'Donation completed via JS SDK',
             ]);
 
-            $this->audit->log('payment.donation.completed', $payment, [], [], "Donation of \${$payment->amount} from {$family->name}: {$payment->description}");
-
-            $qbItemId  = $this->resolveDonationItemId($payment->description ?? '');
+            $pledge    = $payment->pledge_id ? Pledge::find($payment->pledge_id) : null;
             $paypalFee = $capture['fee'] ?? 0;
-            dispatch(function () use ($payment, $qbItemId, $paypalFee) {
-                $qb   = app(\App\Services\QuickBooksService::class);
-                $memo = 'Portal donation via PayPal' . ($payment->description ? ' — ' . $payment->description : '');
-                try {
-                    $qb->createSalesReceipt($payment, $qbItemId);
-                    \Log::info("QB SalesReceipt created for payment #{$payment->id} (item #{$qbItemId})");
-                } catch (\Throwable $e) {
-                    \Log::error("QB SalesReceipt failed for payment #{$payment->id}: " . $e->getMessage());
-                }
-                try {
-                    $qb->createFeeExpense($payment, (float)$paypalFee, $memo);
-                    \Log::info("QB fee expense created for payment #{$payment->id} (\${$paypalFee})");
-                } catch (\Throwable $e) {
-                    \Log::error("QB fee expense failed for payment #{$payment->id}: " . $e->getMessage());
-                }
-            })->afterResponse();
+            $memo      = 'Portal ' . ($pledge ? 'pledge payment' : 'donation') . ' via PayPal'
+                       . ($payment->description ? ' — ' . $payment->description : '');
+
+            if ($pledge) {
+                $this->audit->log('payment.pledge.completed', $payment, [], [], "Pledge payment of \${$payment->amount} from {$family->name}: {$payment->description}");
+
+                // Update pledge balance
+                $newBalance = max(0, (float)$pledge->balance - (float)$payment->amount);
+                $pledge->update([
+                    'balance' => $newBalance,
+                    'status'  => $newBalance == 0 ? 'paid' : 'open',
+                ]);
+
+                $family->recalculateBalance();
+
+                dispatch(function () use ($payment, $pledge, $paypalFee, $memo) {
+                    $qb = app(\App\Services\QuickBooksService::class);
+                    try {
+                        $qb->createPledgePayment($payment, $pledge, $memo);
+                        \Log::info("QB Payment created for pledge #{$pledge->id}, payment #{$payment->id}");
+                    } catch (\Throwable $e) {
+                        \Log::error("QB pledge payment failed for payment #{$payment->id}: " . $e->getMessage());
+                    }
+                    try {
+                        $qb->createFeeExpense($payment, (float)$paypalFee, $memo);
+                        \Log::info("QB fee expense created for payment #{$payment->id} (\${$paypalFee})");
+                    } catch (\Throwable $e) {
+                        \Log::error("QB fee expense failed for payment #{$payment->id}: " . $e->getMessage());
+                    }
+                })->afterResponse();
+            } else {
+                $this->audit->log('payment.donation.completed', $payment, [], [], "Donation of \${$payment->amount} from {$family->name}: {$payment->description}");
+
+                $family->recalculateBalance();
+
+                $qbItemId = $this->resolveDonationItemId($payment->description ?? '');
+                dispatch(function () use ($payment, $qbItemId, $paypalFee, $memo) {
+                    $qb = app(\App\Services\QuickBooksService::class);
+                    try {
+                        $qb->createSalesReceipt($payment, $qbItemId);
+                        \Log::info("QB SalesReceipt created for payment #{$payment->id} (item #{$qbItemId})");
+                    } catch (\Throwable $e) {
+                        \Log::error("QB SalesReceipt failed for payment #{$payment->id}: " . $e->getMessage());
+                    }
+                    try {
+                        $qb->createFeeExpense($payment, (float)$paypalFee, $memo);
+                        \Log::info("QB fee expense created for payment #{$payment->id} (\${$paypalFee})");
+                    } catch (\Throwable $e) {
+                        \Log::error("QB fee expense failed for payment #{$payment->id}: " . $e->getMessage());
+                    }
+                })->afterResponse();
+            }
 
             return response()->json([
                 'success'     => true,
@@ -372,6 +478,107 @@ class FinancialController extends Controller
         } catch (\Throwable $e) {
             \Log::error('donateCaptureOrder error: ' . $e->getMessage());
             return response()->json(['error' => 'Payment capture failed. Please contact the office.'], 500);
+        }
+    }
+
+    /**
+     * Apple Pay — server-side confirm-payment-source + capture in one call.
+     * The JS sends us the raw Apple Pay token; we hit PayPal's REST API directly
+     * so we don't rely on the client-side applepay.confirmOrder() SDK method.
+     */
+    public function applePayCapture(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $orderId       = $request->input('orderID');
+        $applePayToken = $request->input('applePayToken');
+        $billingContact = $request->input('billingContact', []);
+        $family        = auth()->user()->family;
+
+        if (!$orderId || !$applePayToken || !$family) {
+            return response()->json(['error' => 'Invalid request.'], 422);
+        }
+
+        $payment = Payment::where('paypal_order_id', $orderId)
+            ->where('family_id', $family->id)
+            ->where('status', 'pending')
+            ->first();
+
+        if (!$payment) {
+            return response()->json(['error' => 'Order not found or already processed.'], 404);
+        }
+
+        try {
+            // Step 1: confirm payment source with Apple Pay token (server-side)
+            $this->paypal->confirmApplePayOrder($orderId, $applePayToken, $billingContact);
+
+            // Step 2: capture
+            $capture = $this->paypal->captureOrder($orderId);
+
+            $payment->update([
+                'status'                => 'completed',
+                'paypal_transaction_id' => $capture['transaction_id'],
+                'notes'                 => 'Apple Pay donation completed',
+            ]);
+
+            $pledge    = $payment->pledge_id ? Pledge::find($payment->pledge_id) : null;
+            $paypalFee = $capture['fee'] ?? 0;
+            $memo      = 'Portal ' . ($pledge ? 'pledge payment' : 'donation') . ' via Apple Pay'
+                       . ($payment->description ? ' — ' . $payment->description : '');
+
+            if ($pledge) {
+                $this->audit->log('payment.pledge.completed', $payment, [], [], "Pledge payment of \${$payment->amount} from {$family->name}: {$payment->description}");
+
+                $newBalance = max(0, (float)$pledge->balance - (float)$payment->amount);
+                $pledge->update([
+                    'balance' => $newBalance,
+                    'status'  => $newBalance == 0 ? 'paid' : 'open',
+                ]);
+
+                $family->recalculateBalance();
+
+                dispatch(function () use ($payment, $pledge, $paypalFee, $memo) {
+                    $qb = app(\App\Services\QuickBooksService::class);
+                    try {
+                        $qb->createPledgePayment($payment, $pledge, $memo);
+                        \Log::info("QB Payment created for pledge #{$pledge->id}, payment #{$payment->id}");
+                    } catch (\Throwable $e) {
+                        \Log::error("QB pledge payment failed for payment #{$payment->id}: " . $e->getMessage());
+                    }
+                    try {
+                        $qb->createFeeExpense($payment, (float)$paypalFee, $memo);
+                    } catch (\Throwable $e) {
+                        \Log::error("QB fee expense failed for payment #{$payment->id}: " . $e->getMessage());
+                    }
+                })->afterResponse();
+            } else {
+                $this->audit->log('payment.donation.completed', $payment, [], [], "Apple Pay donation of \${$payment->amount} from {$family->name}: {$payment->description}");
+
+                $family->recalculateBalance();
+
+                $qbItemId = $this->resolveDonationItemId($payment->description ?? '');
+                dispatch(function () use ($payment, $qbItemId, $paypalFee, $memo) {
+                    $qb = app(\App\Services\QuickBooksService::class);
+                    try {
+                        $qb->createSalesReceipt($payment, $qbItemId);
+                        \Log::info("QB SalesReceipt created for Apple Pay payment #{$payment->id}");
+                    } catch (\Throwable $e) {
+                        \Log::error("QB SalesReceipt failed for payment #{$payment->id}: " . $e->getMessage());
+                    }
+                    try {
+                        $qb->createFeeExpense($payment, (float)$paypalFee, $memo);
+                    } catch (\Throwable $e) {
+                        \Log::error("QB fee expense failed for payment #{$payment->id}: " . $e->getMessage());
+                    }
+                })->afterResponse();
+            }
+
+            return response()->json([
+                'success'     => true,
+                'amount'      => number_format($payment->amount, 2),
+                'description' => $payment->description,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('applePayCapture error: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 

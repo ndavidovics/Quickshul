@@ -94,7 +94,11 @@ class DailyQuickBooksSync implements ShouldQueue
                                     ]
                                 );
                             }
-                            $safeUpdate = array_diff_key($data, $conflicts);
+                            $safeUpdate = array_filter(
+                                array_diff_key($data, $conflicts),
+                                fn($val, $field) => !($val === null && isset($existing->$field) && $existing->$field !== null),
+                                ARRAY_FILTER_USE_BOTH
+                            );
                             $existing->update($safeUpdate);
                         } else {
                             $existing = Family::create($data);
@@ -195,17 +199,30 @@ class DailyQuickBooksSync implements ShouldQueue
                         // Build description from linked invoice(s)
                         $desc = $this->buildPaymentDescription($transaction, $invoiceMap);
 
-                        Payment::updateOrCreate(
-                            ['qb_transaction_id' => $txnId],
-                            [
-                                'family_id'    => $family->id,
-                                'amount'       => $amount,
-                                'payment_date' => $date,
-                                'method'       => 'quickbooks',
-                                'description'  => $desc,
-                                'status'       => 'completed',
-                            ]
-                        );
+                        // If a PayPal payment for the same family/amount/date already exists,
+                        // link it to this QB transaction rather than creating a duplicate row.
+                        $portal = Payment::where('family_id', $family->id)
+                            ->where('amount', $amount)
+                            ->whereDate('payment_date', $date->toDateString())
+                            ->whereNotNull('paypal_transaction_id')
+                            ->whereNull('qb_transaction_id')
+                            ->first();
+
+                        if ($portal) {
+                            $portal->update(['qb_transaction_id' => $txnId]);
+                        } else {
+                            Payment::updateOrCreate(
+                                ['qb_transaction_id' => $txnId],
+                                [
+                                    'family_id'    => $family->id,
+                                    'amount'       => $amount,
+                                    'payment_date' => $date,
+                                    'method'       => 'quickbooks',
+                                    'description'  => $desc,
+                                    'status'       => 'completed',
+                                ]
+                            );
+                        }
 
                         $paymentsProcessed++;
                     });
@@ -223,17 +240,29 @@ class DailyQuickBooksSync implements ShouldQueue
                     $family = Family::where('qb_customer_id', $sr['qb_customer_id'])->first();
                     if (!$family) continue;
 
-                    Payment::updateOrCreate(
-                        ['qb_sales_receipt_id' => $sr['qb_sales_receipt_id']],
-                        [
-                            'family_id'    => $family->id,
-                            'amount'       => $sr['amount'],
-                            'payment_date' => $sr['payment_date'],
-                            'method'       => 'quickbooks',
-                            'description'  => $sr['description'],
-                            'status'       => 'completed',
-                        ]
-                    );
+                    // Same dedup check for sales receipts
+                    $portal = Payment::where('family_id', $family->id)
+                        ->where('amount', $sr['amount'])
+                        ->whereDate('payment_date', Carbon::parse($sr['payment_date'])->toDateString())
+                        ->whereNotNull('paypal_transaction_id')
+                        ->whereNull('qb_sales_receipt_id')
+                        ->first();
+
+                    if ($portal) {
+                        $portal->update(['qb_sales_receipt_id' => $sr['qb_sales_receipt_id']]);
+                    } else {
+                        Payment::updateOrCreate(
+                            ['qb_sales_receipt_id' => $sr['qb_sales_receipt_id']],
+                            [
+                                'family_id'    => $family->id,
+                                'amount'       => $sr['amount'],
+                                'payment_date' => $sr['payment_date'],
+                                'method'       => 'quickbooks',
+                                'description'  => $sr['description'],
+                                'status'       => 'completed',
+                            ]
+                        );
+                    }
 
                     $paymentsProcessed++;
                 } catch (\Throwable $e) {

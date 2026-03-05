@@ -6,6 +6,7 @@ use App\Enums\MembershipType;
 use App\Exceptions\QuickBooksNotConnectedException;
 use App\Models\Family;
 use App\Models\Payment;
+use App\Models\Pledge;
 use App\Models\QbConnection;
 use QuickBooksOnline\API\DataService\DataService;
 use QuickBooksOnline\API\Core\OAuth\OAuth2\OAuth2LoginHelper;
@@ -46,7 +47,7 @@ class QuickBooksService
             $conn->update([
                 'access_token'            => $accessToken->getAccessToken(),
                 'refresh_token'           => $accessToken->getRefreshToken(),
-                'access_token_expires_at' => now()->addSeconds($accessToken->getAccessTokenExpiresAt()),
+                'access_token_expires_at' => now()->addSeconds($accessToken->getAccessTokenValidationPeriodInSeconds()),
                 'refresh_token_expires_at'=> now()->addDays(100),
             ]);
 
@@ -63,7 +64,10 @@ class QuickBooksService
             throw new QuickBooksNotConnectedException();
         }
 
-        $this->refreshTokenIfNeeded();
+        if (!$this->refreshTokenIfNeeded()) {
+            throw new \RuntimeException('QuickBooks access token is expired and could not be refreshed. Please reconnect QuickBooks.');
+        }
+
         $conn = $this->getConnection();
 
         return DataService::Configure([
@@ -105,7 +109,7 @@ class QuickBooksService
             [
                 'access_token'             => $accessToken->getAccessToken(),
                 'refresh_token'            => $accessToken->getRefreshToken(),
-                'access_token_expires_at'  => now()->addSeconds((int)$accessToken->getAccessTokenExpiresAt()),
+                'access_token_expires_at'  => now()->addSeconds($accessToken->getAccessTokenValidationPeriodInSeconds()),
                 'refresh_token_expires_at' => now()->addDays(100),
                 'connected_by_user_id'     => auth()->id(),
             ]
@@ -179,7 +183,7 @@ class QuickBooksService
 
         do {
             $where = $changedSince
-                ? "WHERE Metadata.LastUpdatedTime > '" . \Carbon\Carbon::instance($changedSince)->format('Y-m-d\TH:i:s') . "'"
+                ? "WHERE Metadata.LastUpdatedTime > '" . \Carbon\Carbon::instance($changedSince)->utc()->format('Y-m-d\TH:i:s') . "'"
                 : '';
 
             $sql      = "SELECT * FROM Invoice {$where} STARTPOSITION {$startPos} MAXRESULTS 1000";
@@ -221,7 +225,7 @@ class QuickBooksService
 
         do {
             $where = $changedSince
-                ? "WHERE Metadata.LastUpdatedTime > '" . \Carbon\Carbon::instance($changedSince)->format('Y-m-d\TH:i:s') . "'"
+                ? "WHERE Metadata.LastUpdatedTime > '" . \Carbon\Carbon::instance($changedSince)->utc()->format('Y-m-d\TH:i:s') . "'"
                 : '';
 
             $sql      = "SELECT * FROM SalesReceipt {$where} STARTPOSITION {$startPos} MAXRESULTS 1000";
@@ -282,7 +286,7 @@ class QuickBooksService
 
         do {
             if ($changedSince) {
-                $dt  = \Carbon\Carbon::instance($changedSince)->format('Y-m-d\TH:i:s');
+                $dt  = \Carbon\Carbon::instance($changedSince)->utc()->format('Y-m-d\TH:i:s');
                 $sql = "SELECT * FROM Customer WHERE Metadata.LastUpdatedTime > '{$dt}' STARTPOSITION {$startPos} MAXRESULTS 1000";
             } else {
                 $sql = "SELECT * FROM Customer STARTPOSITION {$startPos} MAXRESULTS 1000";
@@ -410,6 +414,56 @@ class QuickBooksService
     }
 
     /**
+     * Create a QB Payment linked to the pledge's QB Invoice.
+     * Uses PayPal as payment method, deposited to Paypal for Payments.
+     */
+    public function createPledgePayment(Payment $payment, Pledge $pledge, string $memo): ?string
+    {
+        $client = $this->getClient();
+        $family = $payment->family;
+
+        if (!$family->qb_customer_id) return null;
+
+        $lines = [];
+
+        // Link to the QB invoice if we have one; otherwise it's an unapplied payment
+        if ($pledge->qb_invoice_id) {
+            $lines[] = [
+                'Amount'    => (float)$payment->amount,
+                'LinkedTxn' => [[
+                    'TxnId'   => $pledge->qb_invoice_id,
+                    'TxnType' => 'Invoice',
+                ]],
+            ];
+        }
+
+        $qbPayment = \QuickBooksOnline\API\Facades\Payment::create([
+            'CustomerRef'         => ['value' => $family->qb_customer_id],
+            'TotalAmt'            => (float)$payment->amount,
+            'TxnDate'             => $payment->payment_date->format('Y-m-d'),
+            'PrivateNote'         => $memo,
+            'PaymentMethodRef'    => ['value' => '9'],   // PayPal
+            'DepositToAccountRef' => ['value' => '975'], // Paypal for Payments
+            'Line'                => $lines,
+        ]);
+
+        $result = $client->Add($qbPayment);
+        $error  = $client->getLastError();
+
+        if ($error) {
+            throw new \RuntimeException('QB createPledgePayment error: ' . $error->getResponseBody());
+        }
+
+        $qbPaymentId = $result->Id ?? null;
+
+        if ($qbPaymentId) {
+            $payment->update(['qb_transaction_id' => $qbPaymentId]);
+        }
+
+        return $qbPaymentId;
+    }
+
+    /**
      * Create a QB expense (Purchase) for the PayPal transaction fee.
      *
      * QB IDs:
@@ -489,7 +543,7 @@ class QuickBooksService
         $updated = \QuickBooksOnline\API\Facades\Customer::update($existing, [
             'sparse'       => 'true',
             'DisplayName'  => $family->name,
-            'PrimaryPhone' => $family->phone,
+            'PrimaryPhone' => $family->phone ? ['FreeFormNumber' => $family->phone] : null,
             'BillAddr'     => [
                 'Line1'                  => $family->address,
                 'City'                   => $family->city,

@@ -67,15 +67,18 @@ class QbController extends Controller
         return redirect()->route('admin.qb')->with('success', 'QuickBooks disconnected.');
     }
 
-    public function syncPull()
+    public function syncPull(Request $request)
     {
         set_time_limit(0);
         ini_set('max_execution_time', 0);
 
-        $job = new DailyQuickBooksSync(true, auth()->id());
+        $forced = $request->boolean('forced', false);
+        $label  = $forced ? 'Full sync' : 'Update sync';
+
+        $job = new DailyQuickBooksSync($forced, auth()->id());
         app()->call([$job, 'handle']);
-        $this->audit->log('admin.qb.sync.pull.triggered', null, [], [], 'Manual QB pull sync triggered');
-        return back()->with('success', 'Pull sync complete. Check the sync log below for results.');
+        $this->audit->log('admin.qb.sync.pull.triggered', null, [], ['forced' => $forced], "Manual QB pull sync triggered ({$label})");
+        return back()->with('success', "{$label} complete. Check the sync log below for results.");
     }
 
     public function syncPushFamily(int $id)

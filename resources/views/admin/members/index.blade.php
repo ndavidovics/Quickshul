@@ -20,6 +20,7 @@
         <div style="min-width:160px">
             <select name="membership_type" class="form-control">
                 <option value="">All types</option>
+                <option value="all_members" {{ request('membership_type') === 'all_members' ? 'selected' : '' }}>All Members (excl. Donors)</option>
                 @foreach($membershipTypes as $type)
                     <option value="{{ $type->value }}" {{ request('membership_type') === $type->value ? 'selected' : '' }}>
                         {{ $type->label() }}

@@ -8,37 +8,40 @@ use App\Models\FamilyMember;
 
 class HebrewDateService
 {
-    // Hebrew month names (1=Tishrei ... 13=Adar II in leap years)
+    private const MONTH_NAMES_HE = [
+        1  => 'תשרי',
+        2  => 'חשון',
+        3  => 'כסלו',
+        4  => 'טבת',
+        5  => 'שבט',
+        6  => 'אדר א׳',
+        7  => 'אדר ב׳',  // plain אדר in non-leap years
+        8  => 'ניסן',
+        9  => 'אייר',
+        10 => 'סיון',
+        11 => 'תמוז',
+        12 => 'אב',
+        13 => 'אלול',
+    ];
+
+    // PHP's jdtojewish() always uses this 13-month numbering regardless of leap year:
+    // Month 6 = Adar I (leap only; never returned in non-leap years)
+    // Month 7 = Adar II (leap) or plain Adar (non-leap)
+    // Month 8 = Nisan (always), Month 9 = Iyar (always), etc.
     private const MONTH_NAMES = [
         1  => 'Tishrei',
         2  => 'Cheshvan',
         3  => 'Kislev',
         4  => 'Tevet',
         5  => 'Shevat',
-        6  => 'Adar I',   // Adar I in leap year, Adar in non-leap
-        7  => 'Adar II',  // Adar II in leap year, Nisan in non-leap
+        6  => 'Adar I',
+        7  => 'Adar II',  // displayed as 'Adar' in non-leap years
         8  => 'Nisan',
         9  => 'Iyar',
         10 => 'Sivan',
         11 => 'Tammuz',
         12 => 'Av',
         13 => 'Elul',
-    ];
-
-    // Hebrew month names for non-leap years (7 months shift)
-    private const MONTH_NAMES_REGULAR = [
-        1  => 'Tishrei',
-        2  => 'Cheshvan',
-        3  => 'Kislev',
-        4  => 'Tevet',
-        5  => 'Shevat',
-        6  => 'Adar',
-        7  => 'Nisan',
-        8  => 'Iyar',
-        9  => 'Sivan',
-        10 => 'Tammuz',
-        11 => 'Av',
-        12 => 'Elul',
     ];
 
     private const HEBREW_LETTERS = [
@@ -60,7 +63,7 @@ class HebrewDateService
 
         $isLeap    = $this->isLeapYear($year);
         $monthName = $this->getMonthName($month, $isLeap);
-        $formatted = $this->numberToHebrewLetters($day) . ' ' . $monthName . ' ' . $this->yearToHebrew($year);
+        $formatted = $this->numberToHebrewLetters($day) . ' ' . $this->getMonthNameHe($month, $isLeap) . ' ' . $this->yearToHebrew($year);
 
         return [
             'day'        => $day,
@@ -86,9 +89,8 @@ class HebrewDateService
 
     public function formatHebrewDate(int $day, int $month, int $year): string
     {
-        $isLeap    = $this->isLeapYear($year);
-        $monthName = $this->getMonthName($month, $isLeap);
-        return $this->numberToHebrewLetters($day) . ' ' . $monthName . ' ' . $this->yearToHebrew($year);
+        $isLeap = $this->isLeapYear($year);
+        return $this->numberToHebrewLetters($day) . ' ' . $this->getMonthNameHe($month, $isLeap) . ' ' . $this->yearToHebrew($year);
     }
 
     public function upcomingYahrzeits(int $familyId, int $days = 60): Collection
@@ -214,14 +216,16 @@ class HebrewDateService
 
     private function monthNameToNumber(string $name): int
     {
+        // Month numbers match PHP's jdtojewish() scheme (13-month, consistent across leap/non-leap):
+        // Month 6 = Adar I (leap only), Month 7 = Adar/Adar II, Month 8 = Nisan (always)
         $map = [
             'tishrei'  => 1, 'tishri' => 1,
             'cheshvan' => 2, 'heshvan' => 2, 'marcheshvan' => 2,
             'kislev'   => 3,
             'tevet'    => 4,
             'shevat'   => 5,
-            'adar'     => 6, 'adar i' => 6, 'adar 1' => 6,
-            'adar ii'  => 7, 'adar 2' => 7,
+            'adar i'   => 6, 'adar 1' => 6,
+            'adar'     => 7, 'adar ii' => 7, 'adar 2' => 7,
             'nisan'    => 8,
             'iyar'     => 9,
             'sivan'    => 10,
@@ -235,11 +239,19 @@ class HebrewDateService
 
     public function getMonthName(int $month, bool $isLeapYear): string
     {
-        if ($isLeapYear) {
-            return self::MONTH_NAMES[$month] ?? "Month {$month}";
+        // Month 7 = Adar II in leap years, plain Adar in non-leap years
+        if ($month === 7 && !$isLeapYear) {
+            return 'Adar';
         }
+        return self::MONTH_NAMES[$month] ?? "Month {$month}";
+    }
 
-        return self::MONTH_NAMES_REGULAR[$month] ?? "Month {$month}";
+    public function getMonthNameHe(int $month, bool $isLeapYear): string
+    {
+        if ($month === 7 && !$isLeapYear) {
+            return 'אדר';
+        }
+        return self::MONTH_NAMES_HE[$month] ?? "חודש {$month}";
     }
 
     public function isLeapYear(int $hebrewYear): bool
@@ -294,41 +306,18 @@ class HebrewDateService
      */
     private function mapMonthBetweenYears(int $month, ?int $sourceYear, int $targetYear): int
     {
-        // If we don't know the source year, can't map properly - just use the month as-is
         if ($sourceYear === null) {
             return $month;
         }
 
-        $sourceIsLeap = $this->isLeapYear($sourceYear);
-        $targetIsLeap = $this->isLeapYear($targetYear);
-
-        // If both have same leap status, no mapping needed
-        if ($sourceIsLeap === $targetIsLeap) {
-            return $month;
+        // PHP's jdtojewish() uses consistent month numbers across leap/non-leap years:
+        // month 8=Nisan, 9=Iyar, etc. are the same in all years.
+        // Only month 6 (Adar I) is leap-year-exclusive; it maps to month 7 (Adar) in non-leap years.
+        if ($month === 6 && !$this->isLeapYear($targetYear)) {
+            return 7; // Adar I (leap) → Adar (non-leap)
         }
 
-        // Map based on the logical months:
-        // Non-leap: 1=Tishrei, 2=Cheshvan, 3=Kislev, 4=Tevet, 5=Shevat, 6=Adar, 7=Nisan, 8=Iyar...
-        // Leap: 1=Tishrei, 2=Cheshvan, 3=Kislev, 4=Tevet, 5=Shevat, 6=Adar I, 7=Adar II, 8=Nisan, 9=Iyar...
-
-        if ($sourceIsLeap && !$targetIsLeap) {
-            // Map from leap to non-leap
-            // 6=Adar I -> 6=Adar (stays the same, accounts for both)
-            // 7=Adar II -> 6=Adar (both refer to the "main" Adar)
-            // 8=Nisan -> 7=Nisan
-            // 9=Iyar -> 8=Iyar
-            if ($month === 7) return 6;      // Adar II -> Adar
-            if ($month >= 8) return $month - 1;  // Shift everything after Adar II down by 1
-            return $month;
-        } else {
-            // Map from non-leap to leap
-            // 6=Adar -> 7=Adar II (Ashkenazi tradition: non-leap Adar matches leap Adar II)
-            // 7=Nisan -> 8=Nisan
-            // 8=Iyar -> 9=Iyar
-            if ($month === 6) return 7;      // Adar -> Adar II
-            if ($month >= 7) return $month + 1;  // Shift everything after Adar up by 1
-            return $month;
-        }
+        return $month;
     }
 
     public function numberToHebrewLetters(int $n): string
@@ -347,11 +336,12 @@ class HebrewDateService
             }
         }
 
-        // Insert geresh/gershayim
-        if (strlen($result) === 1) {
+        // Insert geresh/gershayim (must use mb_ functions — Hebrew chars are multi-byte UTF-8)
+        $len = mb_strlen($result, 'UTF-8');
+        if ($len === 1) {
             $result .= "'";
-        } elseif (strlen($result) > 1) {
-            $result = substr($result, 0, -1) . '"' . substr($result, -1);
+        } elseif ($len > 1) {
+            $result = mb_substr($result, 0, -1, 'UTF-8') . '"' . mb_substr($result, -1, 1, 'UTF-8');
         }
 
         return $result;

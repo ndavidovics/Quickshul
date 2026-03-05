@@ -2,10 +2,13 @@
 @section('title', $family->name)
 
 @section('content')
-<div class="flex items-center gap-3" style="margin-bottom:1.5rem">
+<div class="flex items-center gap-3" style="margin-bottom:1.5rem;flex-wrap:wrap">
     <a href="{{ route('admin.members') }}" class="btn btn-outline btn-sm">← Members</a>
     <h1 class="page-title" style="margin-bottom:0">{{ $family->name }}</h1>
     <a href="{{ route('admin.members.edit', $family->id) }}" class="btn btn-primary btn-sm">Edit</a>
+    @if($family->outstanding_balance > 0)
+    <a href="{{ route('admin.members.email', $family->id) }}" class="btn btn-gold btn-sm">✉ Send Balance Email</a>
+    @endif
     @if($family->qb_customer_id)
     <form method="POST" action="{{ route('admin.members.push-to-qb', $family->id) }}" style="margin:0">
         @csrf
@@ -59,7 +62,7 @@
 <div class="card" style="margin-top:1.25rem">
     <div class="card-title">Family Members</div>
     <table class="table">
-        <thead><tr><th>Name</th><th>Hebrew Name</th><th>Role</th><th>DOB</th><th>Hebrew DOB</th></tr></thead>
+        <thead><tr><th>Name</th><th>Hebrew Name</th><th>Role</th><th>DOB</th><th>Hebrew DOB</th><th></th></tr></thead>
         <tbody>
             @foreach($family->members as $m)
             <tr>
@@ -68,6 +71,7 @@
                 <td><span class="badge badge-muted">{{ ucfirst($m->role) }}</span></td>
                 <td class="text-muted text-sm">{{ $m->date_of_birth?->format('M j, Y') ?? '—' }}</td>
                 <td class="text-sm">{{ $m->hebrew_date_of_birth ?? '—' }}</td>
+                <td><a href="{{ route('admin.members.edit-member', [$family->id, $m->id]) }}" class="btn btn-outline btn-sm">Edit</a></td>
             </tr>
             @endforeach
         </tbody>

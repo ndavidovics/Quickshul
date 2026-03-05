@@ -9,6 +9,7 @@ use App\Http\Controllers\FamilyInfoController;
 use App\Http\Controllers\FinancialController;
 use App\Http\Controllers\MemberProfileController;
 use App\Http\Controllers\PayPalWebhookController;
+use App\Http\Controllers\PublicPaymentController;
 use App\Http\Controllers\Admin\EmailReminderController;
 use App\Http\Controllers\Admin\MemberEditController;
 use App\Http\Controllers\Admin\MembersController;
@@ -36,6 +37,11 @@ Route::get('/privacy', fn() => view('legal.privacy'))->name('privacy');
 // PayPal webhook — no CSRF (exempted in bootstrap/app.php)
 Route::post('/paypal/webhook', [PayPalWebhookController::class, 'handle'])->name('paypal.webhook');
 
+// Public payment page (token-based, no auth required)
+Route::get('/pay/{token}', [PublicPaymentController::class, 'show'])->name('public.pay');
+Route::post('/pay/{token}/create-order', [PublicPaymentController::class, 'createOrder'])->name('public.pay.create-order');
+Route::post('/pay/{token}/capture', [PublicPaymentController::class, 'captureOrder'])->name('public.pay.capture');
+
 // --- Authenticated Member ---
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -56,7 +62,9 @@ Route::middleware('auth')->group(function () {
     // Donations
     Route::get('/donate', [FinancialController::class, 'donateForm'])->name('donate');
     Route::post('/donate/create-order', [FinancialController::class, 'donateCreateOrder'])->name('donate.create-order');
+    Route::post('/donate/apple-pay-create-order', [FinancialController::class, 'applePayCreateOrder'])->name('donate.apple-pay-create-order');
     Route::post('/donate/capture', [FinancialController::class, 'donateCaptureOrder'])->name('donate.capture');
+    Route::post('/donate/apple-pay-capture', [FinancialController::class, 'applePayCapture'])->name('donate.apple-pay-capture');
     // Legacy redirect-flow routes (kept for any in-flight sessions)
     Route::post('/donate', [FinancialController::class, 'donatePay'])->name('donate.pay');
     Route::get('/donate/return', [FinancialController::class, 'donateReturn'])->name('donate.return');
@@ -100,8 +108,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Email Reminders
     Route::get('/emails', [EmailReminderController::class, 'index'])->name('emails');
-    Route::post('/emails/preview', [EmailReminderController::class, 'preview'])->name('emails.preview');
-    Route::post('/emails/send', [EmailReminderController::class, 'send'])->name('emails.send');
+    Route::post('/emails/balance/send', [EmailReminderController::class, 'sendBalanceReminder'])->name('emails.balance.send');
+    Route::post('/emails/balance/preview', [EmailReminderController::class, 'previewBalance'])->name('emails.balance.preview');
+    Route::post('/emails/balance/test', [EmailReminderController::class, 'sendBalanceReminderTest'])->name('emails.balance.test');
+    Route::post('/emails/statement/send', [EmailReminderController::class, 'sendGivingStatement'])->name('emails.statement.send');
+    Route::post('/emails/statement/test', [EmailReminderController::class, 'sendGivingStatementTest'])->name('emails.statement.test');
+    Route::post('/emails/statement/preview', [EmailReminderController::class, 'previewStatement'])->name('emails.statement.preview');
+    Route::get('/members/{id}/email', [EmailReminderController::class, 'redirectToMemberEmail'])->name('members.email');
 
     // Users
     Route::get('/users', [UserManagementController::class, 'index'])->name('users');

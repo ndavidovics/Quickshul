@@ -4,11 +4,15 @@
 @section('content')
 @php
     $paypalClientId = config('paypal.' . config('paypal.mode') . '.client_id');
+    $prefillPledgeId   = request('pledge_id');
+    $prefillAmount     = request('amount');
+    $prefillDescription= request('description');
+    $isPledgePayment   = !empty($prefillPledgeId);
 @endphp
 
 <div style="max-width:560px;margin:0 auto">
-    <h1 class="page-title">Make a Donation</h1>
-    <p class="page-subtitle">Support Young Israel of Memphis</p>
+    <h1 class="page-title">{{ $isPledgePayment ? 'Pay Pledge' : 'Make a Donation' }}</h1>
+    <p class="page-subtitle">{{ $isPledgePayment ? 'Young Israel of Memphis — Pledge Payment' : 'Support Young Israel of Memphis' }}</p>
 
     {{-- ── Success State ─────────────────────────────────────────────────────── --}}
     <div id="donation-success" style="display:none">
@@ -34,18 +38,24 @@
                     <span style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);
                                  color:var(--text-muted);font-weight:600">$</span>
                     <input type="number" id="amount" class="form-control" style="padding-left:1.75rem"
-                           min="1" step="0.01" placeholder="0.00" autofocus required>
+                           min="1" step="0.01" placeholder="0.00" autofocus required
+                           value="{{ $prefillAmount }}">
                 </div>
             </div>
 
-            {{-- Dedication --}}
+            {{-- Dedication / Purpose --}}
             <div class="form-group">
                 <label class="form-label">
-                    Dedication / Purpose <span class="text-muted text-sm">(optional)</span>
+                    {{ $isPledgePayment ? 'Description' : 'Dedication / Purpose' }}
+                    <span class="text-muted text-sm">(optional)</span>
                 </label>
                 <input type="text" id="description" class="form-control"
-                       placeholder="e.g. In memory of..., General donation, Building fund...">
+                       placeholder="{{ $isPledgePayment ? 'Pledge description' : 'e.g. In memory of..., General donation, Building fund...' }}"
+                       value="{{ $prefillDescription }}">
             </div>
+
+            {{-- Hidden pledge ID (set when paying a specific pledge) --}}
+            <input type="hidden" id="pledge-id" value="{{ $prefillPledgeId }}">
 
             {{-- Error message --}}
             <div id="payment-error"
@@ -63,9 +73,11 @@
                         <img src="https://www.paypalobjects.com/webstatic/en_US/i/buttons/PP_logo_h_100x26.png"
                              alt="PayPal" height="13" style="vertical-align:middle;margin-right:3px"> PayPal
                     </button>
+                    @if(config('app.apple_pay_enabled'))
                     <button type="button" class="pay-tab apple-pay-tab" data-tab="applepay" style="display:none">
                         &#xF8FF; Apple Pay
                     </button>
+                    @endif
                     <button type="button" class="pay-tab google-pay-tab" data-tab="googlepay" style="display:none">
                         G Pay
                     </button>
@@ -117,6 +129,7 @@
                     <div id="paypal-button-container"></div>
                 </div>
 
+                @if(config('app.apple_pay_enabled'))
                 {{-- ── Apple Pay Tab ── --}}
                 <div id="tab-applepay" class="pay-tab-content" style="display:none">
                     <p class="text-sm text-muted" style="margin-bottom:1rem">
@@ -126,6 +139,7 @@
                         Donate with&nbsp;&nbsp;&#xF8FF;&nbsp;Pay
                     </button>
                 </div>
+                @endif
 
                 {{-- ── Google Pay Tab ── --}}
                 <div id="tab-googlepay" class="pay-tab-content" style="display:none">
@@ -204,8 +218,13 @@
 {{-- Google Pay SDK --}}
 <script src="https://pay.google.com/gp/p/js/pay.js"></script>
 
-{{-- PayPal JS SDK --}}
-<script src="https://www.paypal.com/sdk/js?client-id={{ $paypalClientId }}&currency=USD&intent=capture&components=buttons,hosted-fields,applepay,googlepay"></script>
+{{-- PayPal JS SDK: buttons, hosted-fields, Google Pay --}}
+<script src="https://www.paypal.com/sdk/js?client-id={{ $paypalClientId }}&currency=USD&intent=capture&components=buttons,hosted-fields,googlepay&enable-funding=card"></script>
+
+@if(config('app.apple_pay_enabled'))
+{{-- PayPal Apple Pay — separate namespace to avoid hosted-fields conflict --}}
+<script src="https://www.paypal.com/sdk/js?client-id={{ $paypalClientId }}&currency=USD&intent=capture&components=applepay" data-namespace="paypalApplepay"></script>
+@endif
 
 <script>
 (function () {
@@ -264,11 +283,20 @@
 
     // ── Server API calls ───────────────────────────────────────────────────────
 
+    function getPledgeId() {
+        var el = document.getElementById('pledge-id');
+        return el ? el.value.trim() : '';
+    }
+
     function createOrder() {
+        var payload = { amount: getAmount(), description: getDescription() };
+        var pledgeId = getPledgeId();
+        if (pledgeId) payload.pledge_id = pledgeId;
+
         return fetch('{{ route('donate.create-order') }}', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
-            body:    JSON.stringify({ amount: getAmount(), description: getDescription() }),
+            body:    JSON.stringify(payload),
         }).then(function (res) {
             return res.json().then(function (data) {
                 if (!res.ok) throw new Error(data.error || 'Failed to create order.');
@@ -314,8 +342,13 @@
 
     var fieldMap = { number: 'card-number-field', expirationDate: 'expiry-date-field', cvv: 'cvv-field' };
 
-    // Attempt render unconditionally — isEligible() is unreliable when other
-    // components (applepay/googlepay) are loaded alongside hosted-fields.
+    // Diagnostics
+    var hfDiag = 'paypal=' + (typeof paypal) +
+                 ' | HostedFields=' + (typeof paypal.HostedFields) +
+                 ' | isEligible=' + (paypal.HostedFields ? paypal.HostedFields.isEligible() : 'n/a');
+    console.log('[HF diag]', hfDiag);
+    document.getElementById('card-not-eligible').textContent += ' | ' + hfDiag;
+
     paypal.HostedFields.render({
             createOrder: function () {
                 hideError();
@@ -372,19 +405,23 @@
                   });
             });
 
-        }).catch(function () {
-            // Render failed — account not enabled for Advanced Card Payments
+        }).catch(function (err) {
+            console.error('[HF render failed]', err);
+            var msg = '';
+            try { msg = err.message || JSON.stringify(err); } catch(e) { msg = String(err); }
             document.getElementById('card-donate-btn').style.display = 'none';
             document.getElementById('card-not-eligible').style.display = 'block';
+            document.getElementById('card-not-eligible').textContent += ' | err: ' + msg;
             document.querySelector('[data-tab="paypal"]').click();
         });
 
+    @if(config('app.apple_pay_enabled'))
     // ── Apple Pay ──────────────────────────────────────────────────────────────
 
     (function () {
-        if (typeof paypal.Applepay !== 'function') return;
+        if (typeof window.paypalApplepay === 'undefined' || typeof window.paypalApplepay.Applepay !== 'function') return;
 
-        paypal.Applepay().config().then(function (config) {
+        window.paypalApplepay.Applepay().config().then(function (config) {
             if (!config.isEligible) return;
 
             document.querySelector('.apple-pay-tab').style.display = 'inline-flex';
@@ -393,41 +430,78 @@
                 hideError();
                 if (!validateAmount()) return;
 
-                var amount = getAmount();
+                var amount   = getAmount();
+                var applepay = window.paypalApplepay.Applepay();
 
-                createOrder().then(function (orderId) {
-                    var applepay = paypal.Applepay();
-                    var session  = new ApplePaySession(4, {
-                        countryCode:          'US',
-                        currencyCode:         'USD',
-                        merchantCapabilities: config.merchantCapabilities,
-                        supportedNetworks:    config.supportedNetworks,
-                        total: { label: 'Young Israel of Memphis', type: 'final', amount: amount.toFixed(2) },
+                // ApplePaySession must be created synchronously in the gesture handler
+                var session = new ApplePaySession(4, {
+                    countryCode:          'US',
+                    currencyCode:         'USD',
+                    merchantCapabilities: config.merchantCapabilities,
+                    supportedNetworks:    config.supportedNetworks,
+                    total: { label: 'Young Israel of Memphis', type: 'final', amount: amount.toFixed(2) },
+                });
+
+                // Per PayPal docs: validateMerchant does NOT receive orderId
+                session.onvalidatemerchant = function (event) {
+                    applepay.validateMerchant({
+                        validationUrl: event.validationURL,
+                        displayName:   'Young Israel of Memphis',
+                    }).then(function (result) {
+                        session.completeMerchantValidation(result.merchantSession);
+                    }).catch(function (err) {
+                        var msg = (err && (err.message || JSON.stringify(err))) || 'Merchant validation failed';
+                        showError('Apple Pay setup failed: ' + msg);
+                        session.abort();
                     });
+                };
 
-                    session.onvalidatemerchant = function (event) {
-                        applepay.validateMerchant({ validationUrl: event.validationURL, orderId: orderId })
-                                .catch(function () { showError('Apple Pay merchant validation failed.'); session.abort(); });
-                    };
+                // Per PayPal docs: create order INSIDE onpaymentauthorized, then confirmOrder
+                session.onpaymentauthorized = function (event) {
+                    var apPayload = { amount: amount, description: getDescription() };
+                    var pledgeId  = getPledgeId();
+                    if (pledgeId) apPayload.pledge_id = pledgeId;
 
-                    session.onpaymentauthorized = function (event) {
-                        applepay.confirmOrder({ orderId: orderId, token: event.payment.token, billingContact: event.payment.billingContact })
-                                .then(function () { return captureOrder(orderId); })
-                                .then(function (result) {
-                                    session.completePayment(ApplePaySession.STATUS_SUCCESS);
-                                    showSuccess(result.amount, result.description);
-                                })
-                                .catch(function () {
-                                    session.completePayment(ApplePaySession.STATUS_FAILURE);
-                                    showError('Apple Pay payment failed. Please try again.');
-                                });
-                    };
+                    fetch('{{ route('donate.apple-pay-create-order') }}', {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+                        body:    JSON.stringify(apPayload),
+                    })
+                    .then(function (res) {
+                        return res.json().then(function (data) {
+                            if (!res.ok) throw new Error(data.error || 'Failed to create order.');
+                            return data.id;
+                        });
+                    })
+                    .then(function (orderId) {
+                        var token = event.payment.token;
+                        // Ensure token is an object, not a double-stringified JSON string
+                        if (typeof token === 'string') {
+                            try { token = JSON.parse(token); } catch(e) { /* leave as-is */ }
+                        }
+                        var confirmPayload = { orderId: orderId, token: token };
+                        if (event.payment.billingContact) confirmPayload.billingContact = event.payment.billingContact;
+                        return applepay.confirmOrder(confirmPayload).then(function () {
+                            return captureOrder(orderId);
+                        });
+                    })
+                    .then(function (result) {
+                        session.completePayment(ApplePaySession.STATUS_SUCCESS);
+                        showSuccess(result.amount, result.description);
+                    })
+                    .catch(function (err) {
+                        session.completePayment(ApplePaySession.STATUS_FAILURE);
+                        var msg = '';
+                        try { msg = JSON.stringify(err); } catch(e) { msg = String(err); }
+                        showError('Apple Pay failed: ' + msg);
+                    });
+                };
 
-                    session.begin();
-                }).catch(function (err) { showError(err.message); });
+                session.begin();
             });
         }).catch(function () { /* Apple Pay not available */ });
     })();
+    @endif
 
     // ── Google Pay ─────────────────────────────────────────────────────────────
 

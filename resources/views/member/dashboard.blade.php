@@ -21,23 +21,18 @@
 
 @if($family)
 {{-- Stats row --}}
-<div class="grid-3" style="margin-bottom:1.5rem">
+<div class="grid-2" style="margin-bottom:1.5rem">
     <div class="stat-card">
         <div class="stat-label">Outstanding Balance</div>
         <div class="stat-value {{ $family->outstanding_balance > 0 ? '' : 'gold' }}">
             ${{ number_format($family->outstanding_balance, 2) }}
         </div>
-        <div class="stat-sub">Total pledged: ${{ number_format($family->total_pledged, 2) }}</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">Total Paid</div>
-        <div class="stat-value gold">${{ number_format($family->total_paid, 2) }}</div>
         <div class="stat-sub">Member since {{ $family->member_since?->format('Y') ?? '—' }}</div>
     </div>
     <div class="stat-card">
-        <div class="stat-label">Family Members</div>
-        <div class="stat-value">{{ $family->members->count() }}</div>
-        <div class="stat-sub">{{ $family->members->where('role','parent')->count() }} adults, {{ $family->members->where('role','child')->count() }} children</div>
+        <div class="stat-label">Total Donated (Past 12 Months)</div>
+        <div class="stat-value gold">${{ number_format($paidPast12Months, 2) }}</div>
+        <div class="stat-sub">{{ $family->members->count() }} family member{{ $family->members->count() === 1 ? '' : 's' }}</div>
     </div>
 </div>
 
@@ -65,7 +60,7 @@
 
     {{-- Upcoming birthdays --}}
     <div class="card">
-        <div class="card-title">🎂 Upcoming Birthdays <span style="font-size:0.75rem;font-weight:400;color:var(--text-muted)">(next 60 days)</span></div>
+        <div class="card-title">🎂 Upcoming Hebrew Birthdays <span style="font-size:0.75rem;font-weight:400;color:var(--text-muted)">(next 60 days)</span></div>
         @if($birthdays->isEmpty())
             <p class="text-muted text-sm">No birthdays in the next 60 days.</p>
         @else
@@ -86,24 +81,14 @@
 </div>
 
 {{-- Balance alert + quick pay --}}
-@if($family->outstanding_balance > 0)
-<div class="card" style="margin-top:1.25rem;border-color:rgba(201,168,76,0.4)">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
-        <div>
-            <div style="font-weight:600;color:var(--gold);margin-bottom:0.25rem">Outstanding Balance</div>
-            <div style="font-size:1.4rem;font-weight:700;font-family:'Playfair Display',serif">${{ number_format($family->outstanding_balance, 2) }}</div>
-        </div>
-        <a href="{{ route('financial') }}" class="btn btn-gold">Pay Now via PayPal</a>
-    </div>
-</div>
-@endif
+
 
 {{-- Open pledges --}}
 @if($openPledges->count())
 <div class="card" style="margin-top:1.25rem;border-color:rgba(201,168,76,0.3)">
     <div class="card-title">Open Pledges</div>
     <table class="table">
-        <thead><tr><th>Date</th><th>Description</th><th>Pledged</th><th>Balance Due</th></tr></thead>
+        <thead><tr><th>Date</th><th>Description</th><th>Pledged</th><th>Balance Due</th><th></th></tr></thead>
         <tbody>
             @foreach($openPledges as $pledge)
             <tr>
@@ -111,11 +96,18 @@
                 <td class="text-sm">{{ $pledge->description ?: '—' }}</td>
                 <td style="font-weight:600;color:var(--gold)">${{ number_format($pledge->amount, 2) }}</td>
                 <td style="color:var(--gold)">${{ number_format($pledge->balance, 2) }}</td>
+                <td>
+                    <a href="{{ route('donate', [
+                            'pledge_id'   => $pledge->id,
+                            'amount'      => number_format($pledge->balance, 2, '.', ''),
+                            'description' => $pledge->description,
+                        ]) }}"
+                       class="btn btn-gold btn-sm">Pay</a>
+                </td>
             </tr>
             @endforeach
         </tbody>
     </table>
-    <div style="margin-top:0.75rem"><a href="{{ route('financial') }}" class="btn btn-gold btn-sm">Pay Balance →</a></div>
 </div>
 @endif
 

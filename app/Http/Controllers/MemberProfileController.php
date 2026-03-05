@@ -82,6 +82,7 @@ class MemberProfileController extends Controller
             'last_name'            => 'required|string|max:100',
             'hebrew_name'          => 'nullable|string|max:200',
             'gender'               => 'required|in:male,female,other',
+            'role'                 => 'required|in:parent,child,other',
             'date_of_birth'        => 'nullable|date',
             'hebrew_date_of_birth' => 'nullable|string|max:50',
             'hebrew_dob_override'  => 'boolean',

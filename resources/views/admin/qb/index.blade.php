@@ -41,7 +41,7 @@
         <div class="stat-label">Last Sync</div>
         <div class="stat-value" style="font-size:1rem">
             @if($lastSync)
-                {{ $lastSync->completed_at?->format('M j, Y g:i a') ?? 'In progress...' }}
+                {{ $lastSync->completed_at?->format('M j, Y g:i a') ?? 'In progress...' }} <span class="text-muted" style="font-size:0.75rem;font-weight:400">CST</span>
                 <div class="text-sm text-muted" style="font-weight:400;margin-top:0.2rem">
                     {{ ucfirst($lastSync->direction->value) }} — {{ $lastSync->status->value }}
                 </div>
@@ -75,13 +75,27 @@
 @if($isConnected)
 <div class="card" style="margin-bottom:1.25rem">
     <div class="card-title">Sync Actions</div>
-    <div style="display:flex;gap:1rem;flex-wrap:wrap">
-        <form method="POST" action="{{ route('admin.qb.sync.pull') }}" id="pull-form">
+    <div style="display:flex;gap:1.25rem;flex-wrap:wrap;align-items:flex-start">
+        {{-- Update sync (incremental — recent changes only) --}}
+        <form method="POST" action="{{ route('admin.qb.sync.pull') }}" class="sync-form" data-label="update">
             @csrf
+            <input type="hidden" name="forced" value="0">
             <div style="margin-bottom:0.5rem">
-                <button type="submit" class="btn btn-primary" id="pull-btn">↓ Pull from QuickBooks</button>
+                <button type="submit" class="btn btn-primary sync-btn">↓ Update</button>
             </div>
-            <div class="text-sm text-muted">Import customer & payment changes from QB into portal</div>
+            <div class="text-sm text-muted">Pull changes since last sync</div>
+        </form>
+        {{-- Full sync (forced — pulls everything) --}}
+        <form method="POST" action="{{ route('admin.qb.sync.pull') }}" class="sync-form" data-label="full">
+            @csrf
+            <input type="hidden" name="forced" value="1">
+            <div style="margin-bottom:0.5rem">
+                <button type="submit" class="btn btn-outline sync-btn"
+                    onclick="return confirm('Full sync imports all QB data and may take several minutes. Continue?')">
+                    ↓ Full QB Sync
+                </button>
+            </div>
+            <div class="text-sm text-muted">Re-import all customers, payments &amp; pledges</div>
         </form>
         <div style="width:1px;background:var(--border-dim)"></div>
         <form method="POST" action="{{ route('admin.qb.disconnect') }}" onsubmit="return confirm('Disconnect QuickBooks? Sync will stop until reconnected.')">
@@ -120,7 +134,7 @@
         <tbody>
             @foreach($recentLogs as $log)
             <tr>
-                <td class="text-sm text-muted">{{ $log->started_at?->format('M j g:i a') ?? '—' }}</td>
+                <td class="text-sm text-muted">{{ $log->started_at?->format('M j g:i a') ?? '—' }} <span style="font-size:0.7rem;opacity:0.6">CST</span></td>
                 <td><span class="badge badge-muted">{{ ucfirst($log->direction->value) }}</span></td>
                 <td>
                     @if($log->status->value === 'completed')
@@ -157,10 +171,12 @@
 @endif
 
 <script>
-document.getElementById('pull-form')?.addEventListener('submit', function() {
-    var overlay = document.getElementById('sync-overlay');
-    overlay.style.display = 'flex';
-    document.getElementById('pull-btn').disabled = true;
+document.querySelectorAll('.sync-form').forEach(function(form) {
+    form.addEventListener('submit', function() {
+        var overlay = document.getElementById('sync-overlay');
+        overlay.style.display = 'flex';
+        document.querySelectorAll('.sync-btn').forEach(function(btn) { btn.disabled = true; });
+    });
 });
 </script>
 @endsection

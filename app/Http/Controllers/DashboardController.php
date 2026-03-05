@@ -30,6 +30,12 @@ class DashboardController extends Controller
             ? $family->pledges()->where('status', 'open')->get()
             : collect();
 
-        return view('member.dashboard', compact('user', 'family', 'yahrzeits', 'birthdays', 'recentPayments', 'openPledges'));
+        $paidPast12Months = $family
+            ? $family->payments()->completed()
+                ->where('payment_date', '>=', now()->subYear())
+                ->sum('amount')
+            : 0;
+
+        return view('member.dashboard', compact('user', 'family', 'yahrzeits', 'birthdays', 'recentPayments', 'openPledges', 'paidPast12Months'));
     }
 }

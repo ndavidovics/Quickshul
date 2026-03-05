@@ -65,7 +65,9 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'America/Chicago'),
+
+    'apple_pay_enabled' => env('APPLE_PAY_ENABLED', false),
 
     /*
     |--------------------------------------------------------------------------

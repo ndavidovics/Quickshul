@@ -44,24 +44,28 @@
         .site-header {
             background: var(--navy-dark);
             border-bottom: 1px solid var(--border);
-            padding: 0 1.5rem;
+            padding: 0 1.25rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            height: 64px;
+            height: 60px;
             flex-shrink: 0;
+            position: relative;
+            z-index: 200;
         }
 
         .header-brand {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.6rem;
             text-decoration: none;
+            min-width: 0;
         }
 
         .header-logo {
-            width: 38px;
-            height: 38px;
+            width: 34px;
+            height: 34px;
+            flex-shrink: 0;
             object-fit: contain;
             border-radius: 50%;
             border: 2px solid var(--gold);
@@ -69,56 +73,134 @@
             padding: 2px;
         }
 
-        .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
-        .brand-name { font-family: 'Playfair Display', serif; font-size: 0.95rem; font-weight: 700; color: #fff; }
-        .brand-sub  { font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+        .brand-name { font-family: 'Playfair Display', serif; font-size: 0.9rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .brand-sub  { font-size: 0.62rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); }
 
-        /* ── Nav ── */
-        .header-nav {
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
+        /* ── Desktop nav ── */
+        .header-nav { display: flex; align-items: center; gap: 0.15rem; }
 
         .nav-link {
             color: rgba(255,255,255,0.7);
             text-decoration: none;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             font-weight: 500;
-            padding: 0.4rem 0.75rem;
+            padding: 0.4rem 0.65rem;
             border-radius: 6px;
             transition: all 0.15s;
+            white-space: nowrap;
         }
-
-        .nav-link:hover, .nav-link.active {
-            color: #fff;
-            background: rgba(255,255,255,0.08);
-        }
-
+        .nav-link:hover, .nav-link.active { color: #fff; background: rgba(255,255,255,0.08); }
         .nav-link.active { color: var(--gold); }
 
-        .header-right { display: flex; align-items: center; gap: 0.75rem; }
+        .header-right { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
 
-        .user-chip {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            display: none;
-        }
-
-        @media (min-width: 640px) { .user-chip { display: block; } }
+        .user-chip { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; display: none; }
 
         .btn-logout {
             background: transparent;
             border: 1px solid rgba(255,255,255,0.2);
             color: rgba(255,255,255,0.7);
-            padding: 0.35rem 0.8rem;
+            padding: 0.32rem 0.7rem;
             border-radius: 6px;
-            font-size: 0.78rem;
+            font-size: 0.76rem;
             font-family: 'Inter', sans-serif;
             cursor: pointer;
             transition: all 0.15s;
+            white-space: nowrap;
         }
         .btn-logout:hover { border-color: var(--gold); color: var(--gold); }
+
+        /* ── Hamburger ── */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            gap: 5px;
+            width: 36px;
+            height: 36px;
+            padding: 7px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .hamburger span {
+            display: block;
+            height: 2px;
+            background: rgba(255,255,255,0.85);
+            border-radius: 2px;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+        .hamburger.open span:nth-child(2) { opacity: 0; }
+        .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+        /* ── Mobile nav drawer ── */
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            background: var(--navy-dark);
+            border-bottom: 2px solid var(--border);
+            z-index: 199;
+            padding: 0.5rem 0.75rem 0.85rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+        }
+        .mobile-nav.open { display: block; }
+
+        .mobile-nav-link {
+            display: block;
+            padding: 0.7rem 0.75rem;
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: background 0.15s;
+        }
+        .mobile-nav-link:hover  { background: rgba(255,255,255,0.07); }
+        .mobile-nav-link.active { color: var(--gold); background: rgba(201,168,76,0.08); }
+
+        .mobile-nav-divider { height: 1px; background: var(--border-dim); margin: 0.4rem 0; }
+
+        .mobile-nav-user {
+            padding: 0.5rem 0.75rem 0.15rem;
+            font-size: 0.76rem;
+            color: var(--text-muted);
+        }
+
+        .mobile-nav-signout {
+            display: block;
+            width: 100%;
+            padding: 0.7rem 0.75rem;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.95rem;
+            font-weight: 500;
+            border-radius: 8px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            text-align: left;
+            font-family: 'Inter', sans-serif;
+            transition: background 0.15s;
+        }
+        .mobile-nav-signout:hover { background: rgba(231,76,60,0.12); color: #f08080; }
+
+        /* ── Responsive breakpoints ── */
+        @media (max-width: 768px) {
+            .header-nav { display: none; }
+            .user-chip  { display: none !important; }
+            .btn-logout { display: none; }
+            .hamburger  { display: flex; }
+            .brand-sub  { display: none; }
+        }
+        @media (min-width: 769px) {
+            .user-chip { display: block; }
+        }
 
         /* ── Page wrapper ── */
         .page-content {
@@ -129,15 +211,24 @@
             padding: 2rem 1.5rem 4rem;
         }
 
+        @media (max-width: 640px) {
+            .page-content { padding: 1.25rem 0.875rem 3rem; }
+        }
+
         /* ── Cards ── */
         .card {
             background: var(--bg-card);
             border: 1px solid var(--border-dim);
             border-radius: 12px;
             padding: 1.5rem;
+            overflow-x: auto;
         }
 
         .card + .card { margin-top: 1.25rem; }
+
+        @media (max-width: 640px) {
+            .card { padding: 1.1rem; }
+        }
 
         .card-title {
             font-family: 'Playfair Display', serif;
@@ -178,10 +269,13 @@
 
         /* ── Table ── */
         .table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-        .table th { text-align: left; padding: 0.6rem 0.875rem; color: var(--gold); font-weight: 600; font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        .table th { text-align: left; padding: 0.6rem 0.875rem; color: var(--gold); font-weight: 600; font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 1px solid var(--border); white-space: nowrap; }
         .table td { padding: 0.7rem 0.875rem; border-bottom: 1px solid var(--border-dim); color: var(--text); vertical-align: middle; }
         .table tr:last-child td { border-bottom: none; }
         .table tr:hover td { background: rgba(255,255,255,0.03); }
+
+        /* Scrollable table wrapper — use when a card contains only a table */
+        .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
         /* ── Buttons ── */
         .btn {
@@ -333,7 +427,29 @@
                 <button type="submit" class="btn-logout">Sign Out</button>
             </form>
         </div>
+
+        {{-- Mobile hamburger --}}
+        <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
     </header>
+
+    {{-- Mobile nav drawer --}}
+    <div class="mobile-nav" id="mobile-nav" aria-hidden="true">
+        <a href="{{ route('dashboard') }}" class="mobile-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">Dashboard</a>
+        <a href="{{ route('family') }}"    class="mobile-nav-link {{ request()->routeIs('family')    ? 'active' : '' }}">My Family</a>
+        <a href="{{ route('financial') }}" class="mobile-nav-link {{ request()->routeIs('financial*') ? 'active' : '' }}">Financial</a>
+        <a href="{{ route('settings') }}"  class="mobile-nav-link {{ request()->routeIs('settings*')  ? 'active' : '' }}">Settings</a>
+        @if(auth()->user()->is_admin)
+            <a href="{{ route('admin.members') }}" class="mobile-nav-link {{ request()->routeIs('admin.*') ? 'active' : '' }}">Admin</a>
+        @endif
+        <div class="mobile-nav-divider"></div>
+        <div class="mobile-nav-user">{{ auth()->user()->name }}</div>
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit" class="mobile-nav-signout">Sign Out</button>
+        </form>
+    </div>
 
     <div class="page-content">
         @if(session('success'))
@@ -348,6 +464,42 @@
 
         @yield('content')
     </div>
+
+    <script>
+    (function () {
+        var btn = document.getElementById('hamburger');
+        var nav = document.getElementById('mobile-nav');
+        if (!btn || !nav) return;
+
+        btn.addEventListener('click', function () {
+            var open = nav.classList.toggle('open');
+            btn.classList.toggle('open', open);
+            btn.setAttribute('aria-expanded', open);
+            nav.setAttribute('aria-hidden', !open);
+        });
+
+        // Close when a nav link is tapped
+        nav.querySelectorAll('.mobile-nav-link').forEach(function (link) {
+            link.addEventListener('click', function () {
+                nav.classList.remove('open');
+                btn.classList.remove('open');
+                btn.setAttribute('aria-expanded', 'false');
+                nav.setAttribute('aria-hidden', 'true');
+            });
+        });
+
+        // Close on outside tap
+        document.addEventListener('click', function (e) {
+            if (!nav.classList.contains('open')) return;
+            if (!nav.contains(e.target) && !btn.contains(e.target)) {
+                nav.classList.remove('open');
+                btn.classList.remove('open');
+                btn.setAttribute('aria-expanded', 'false');
+                nav.setAttribute('aria-hidden', 'true');
+            }
+        });
+    })();
+    </script>
 
     @yield('scripts')
 </body>

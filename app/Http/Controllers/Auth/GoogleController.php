@@ -18,18 +18,30 @@ class GoogleController extends Controller
     {
         $googleUser = Socialite::driver('google')->user();
 
-        $user = User::updateOrCreate(
-            ['email' => $googleUser->getEmail()],
-            [
-                'name' => $googleUser->getName(),
-                'google_id' => $googleUser->getId(),
-                'avatar' => $googleUser->getAvatar(),
-                'password' => null,
-            ]
-        );
+        $user = User::where('email', $googleUser->getEmail())->first();
+
+        if (! $user) {
+            return redirect('/login')->withErrors([
+                'email' => 'No account found for that Google address. Please contact the office.',
+            ]);
+        }
+
+        // Keep google_id and avatar up to date
+        $user->update([
+            'google_id' => $googleUser->getId(),
+            'avatar'    => $googleUser->getAvatar(),
+        ]);
 
         Auth::login($user, true);
 
-        return redirect()->intended('/dashboard');
+        return redirect($this->redirectAfterLogin($user));
+    }
+
+    private function redirectAfterLogin(User $user): string
+    {
+        if ($user->is_admin && ! $user->family_id) {
+            return route('admin.members');
+        }
+        return '/dashboard';
     }
 }

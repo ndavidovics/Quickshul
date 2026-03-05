@@ -106,7 +106,8 @@ class Family extends Model
 
     public function recalculateBalance(): void
     {
-        $this->outstanding_balance = max(0, $this->total_pledged - $this->total_paid);
+        $this->total_paid          = $this->payments()->completed()->sum('amount');
+        $this->outstanding_balance = $this->pledges()->sum('balance');
         $this->save();
     }
 

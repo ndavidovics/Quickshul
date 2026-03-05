@@ -14,6 +14,7 @@ class Payment extends Model
 
     protected $fillable = [
         'family_id',
+        'pledge_id',
         'amount',
         'payment_date',
         'method',

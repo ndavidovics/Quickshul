@@ -9,4 +9,9 @@ Artisan::command('inspire', function () {
 
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::job(new \App\Jobs\DailyQuickBooksSync)->dailyAt('02:00');
+// Daily incremental QB sync at 2:00 AM CST (forced=false pulls only recent changes)
+Schedule::job(new \App\Jobs\DailyQuickBooksSync(forced: false))
+    ->dailyAt('02:00')
+    ->timezone('America/Chicago')
+    ->name('daily-qb-sync')
+    ->withoutOverlapping();

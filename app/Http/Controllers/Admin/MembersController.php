@@ -55,7 +55,11 @@ class MembersController extends Controller
         }
 
         if ($type = $request->membership_type) {
-            $query->where('membership_type', $type);
+            if ($type === 'all_members') {
+                $query->where('membership_type', '!=', \App\Enums\MembershipType::Donor->value);
+            } else {
+                $query->where('membership_type', $type);
+            }
         }
 
         if ($request->has_balance) {
