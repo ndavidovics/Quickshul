@@ -10,7 +10,11 @@ Artisan::command('inspire', function () {
 use Illuminate\Support\Facades\Schedule;
 
 // Daily incremental QB sync at 2:00 AM CST (forced=false pulls only recent changes)
-Schedule::job(new \App\Jobs\DailyQuickBooksSync(forced: false))
+// Runs inline (no queue worker required) — mirrors what QbController::syncPull() does manually.
+Schedule::call(function () {
+    $job = new \App\Jobs\DailyQuickBooksSync(forced: false);
+    app()->call([$job, 'handle']);
+})
     ->dailyAt('02:00')
     ->timezone('America/Chicago')
     ->name('daily-qb-sync')

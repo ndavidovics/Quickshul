@@ -181,7 +181,8 @@ class DailyQuickBooksSync implements ShouldQueue
             }
 
             // --- Sync Payments (QB Payment entities) ---
-            $transactions = $qbService->getTransactions($changedSince);
+            $transactions      = $qbService->getTransactions($changedSince);
+            $linkedInvoiceIds  = []; // track invoice IDs linked to synced payments
 
             foreach ($transactions as $transaction) {
                 try {
@@ -226,9 +227,37 @@ class DailyQuickBooksSync implements ShouldQueue
 
                         $paymentsProcessed++;
                     });
+
+                    // Collect invoice IDs this payment was applied to so we can
+                    // refresh their balances — QB does not update an invoice's
+                    // LastUpdatedTime when a payment is applied, so the invoice
+                    // delta query above would miss the balance change.
+                    foreach ($this->getLinkedInvoiceIds($transaction) as $invId) {
+                        $linkedInvoiceIds[$invId] = true;
+                    }
                 } catch (\Throwable $e) {
                     $errors[] = ['transaction' => $transaction->Id ?? '?', 'error' => $e->getMessage()];
                     Log::error('QB sync transaction error: ' . $e->getMessage());
+                }
+            }
+
+            // Refresh pledge balances for invoices that had a payment applied but
+            // were not already updated by the invoice delta sync above.
+            $staleInvoiceIds = array_keys(array_diff_key($linkedInvoiceIds, $invoiceMap));
+            if ($staleInvoiceIds) {
+                try {
+                    $freshInvoices = $qbService->getInvoicesByIds($staleInvoiceIds);
+                    foreach ($freshInvoices as $invId => $inv) {
+                        $balance = (float)($inv->Balance ?? 0);
+                        Pledge::where('qb_invoice_id', $invId)->update([
+                            'balance' => $balance,
+                            'status'  => $balance === 0.0 ? 'paid' : 'open',
+                        ]);
+                    }
+                    Log::info('QB sync refreshed pledge balances for ' . count($freshInvoices) . ' invoice(s) affected by payment application.');
+                } catch (\Throwable $e) {
+                    $errors[] = ['pledge_balance_refresh' => $e->getMessage()];
+                    Log::error('QB sync pledge balance refresh error: ' . $e->getMessage());
                 }
             }
 
@@ -324,6 +353,33 @@ class DailyQuickBooksSync implements ShouldQueue
         }
 
         return implode('; ', $descs);
+    }
+
+    /**
+     * Extract QB invoice IDs that a QB Payment transaction was applied to.
+     */
+    private function getLinkedInvoiceIds(object $transaction): array
+    {
+        $ids = [];
+        $raw = $transaction->Line ?? null;
+        if (!$raw) return $ids;
+
+        $lines = is_array($raw) ? $raw : [$raw];
+        foreach ($lines as $line) {
+            $linkedTxn = $line->LinkedTxn ?? null;
+            if (!$linkedTxn) continue;
+
+            $links = is_array($linkedTxn) ? $linkedTxn : [$linkedTxn];
+            foreach ($links as $link) {
+                if (($link->TxnType ?? '') !== 'Invoice') continue;
+                $invoiceId = (string)($link->TxnId ?? '');
+                if ($invoiceId) {
+                    $ids[] = $invoiceId;
+                }
+            }
+        }
+
+        return $ids;
     }
 
     /**

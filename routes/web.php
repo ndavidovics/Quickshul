@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AccountSettingsController;
+use App\Http\Controllers\MemberApplicationController;
+use App\Http\Controllers\Admin\ApplicationController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
@@ -15,6 +17,8 @@ use App\Http\Controllers\Admin\MemberEditController;
 use App\Http\Controllers\Admin\MembersController;
 use App\Http\Controllers\Admin\QbController;
 use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Admin\YahrtzeitController;
+use App\Http\Controllers\Admin\FinancialsController;
 use Illuminate\Support\Facades\Route;
 
 // --- Public ---
@@ -31,6 +35,10 @@ Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']
 
 Route::get('/auth/google/redirect', [GoogleController::class, 'redirect'])->name('google.redirect');
 Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name('google.callback');
+Route::get('/apply', [MemberApplicationController::class, 'show'])->name('apply');
+Route::post('/apply', [MemberApplicationController::class, 'submit'])->name('apply.submit');
+Route::get('/apply/thank-you', [MemberApplicationController::class, 'thankYou'])->name('apply.thank-you');
+
 Route::get('/agreement', fn() => view('legal.agreement'))->name('agreement');
 Route::get('/privacy', fn() => view('legal.privacy'))->name('privacy');
 
@@ -51,6 +59,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/financial/pay', [FinancialController::class, 'payNow'])->name('financial.pay');
     Route::get('/financial/pay/return', [FinancialController::class, 'payReturn'])->name('financial.pay.return');
     Route::get('/financial/pay/cancel', [FinancialController::class, 'payCancel'])->name('financial.pay.cancel');
+    Route::get('/financial/pledges', [FinancialController::class, 'pledgesPage'])->name('financial.pledges');
+    Route::get('/financial/payments', [FinancialController::class, 'paymentsPage'])->name('financial.payments');
     Route::get('/financial/payments/export', [FinancialController::class, 'exportPayments'])->name('financial.export.payments');
     Route::get('/financial/pledges/export', [FinancialController::class, 'exportPledges'])->name('financial.export.pledges');
 
@@ -83,6 +93,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/members/{id}', [MembersController::class, 'show'])->name('members.show');
     Route::get('/members/{id}/payments/export', [MembersController::class, 'exportPayments'])->name('members.export.payments');
     Route::get('/members/{id}/pledges/export', [MembersController::class, 'exportPledges'])->name('members.export.pledges');
+    Route::get('/members/{id}/payments/page', [MembersController::class, 'paymentsAjax'])->name('members.payments.ajax');
+    Route::get('/members/{id}/pledges/page', [MembersController::class, 'pledgesAjax'])->name('members.pledges.ajax');
     Route::get('/members/{id}/edit', [MemberEditController::class, 'edit'])->name('members.edit');
     Route::put('/members/{id}', [MemberEditController::class, 'update'])->name('members.update');
     Route::post('/members/{id}/members', [MemberEditController::class, 'addMember'])->name('members.add-member');
@@ -92,6 +104,34 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/members/{id}/emails', [MemberEditController::class, 'addEmail'])->name('members.add-email');
     Route::delete('/members/{id}/emails/{eid}', [MemberEditController::class, 'removeEmail'])->name('members.remove-email');
     Route::post('/members/{id}/push-to-qb', [QbController::class, 'syncPushFamily'])->name('members.push-to-qb');
+
+    // Yahrtzeits listing
+    Route::get('/yahrtzeits', [YahrtzeitController::class, 'index'])->name('yahrtzeits.index');
+    Route::get('/yahrtzeits/export', [YahrtzeitController::class, 'export'])->name('yahrtzeits.export');
+    Route::post('/yahrtzeits', [YahrtzeitController::class, 'storeGlobal'])->name('yahrtzeits.store-global');
+
+    // Financials
+    Route::get('/financials/payments', [FinancialsController::class, 'payments'])->name('financials.payments');
+    Route::get('/financials/payments/export', [FinancialsController::class, 'exportPayments'])->name('financials.payments.export');
+    Route::get('/financials/pledges', [FinancialsController::class, 'pledges'])->name('financials.pledges');
+    Route::get('/financials/pledges/export', [FinancialsController::class, 'exportPledges'])->name('financials.pledges.export');
+
+    // Yahrtzeits (admin only)
+    Route::post('/members/{id}/yahrtzeits', [YahrtzeitController::class, 'store'])->name('yahrtzeits.store');
+    Route::get('/members/{id}/yahrtzeits/{yid}/edit', [YahrtzeitController::class, 'edit'])->name('yahrtzeits.edit');
+    Route::put('/members/{id}/yahrtzeits/{yid}', [YahrtzeitController::class, 'update'])->name('yahrtzeits.update');
+    Route::delete('/members/{id}/yahrtzeits/{yid}', [YahrtzeitController::class, 'destroy'])->name('yahrtzeits.destroy');
+    Route::get('/yahrtzeits/hebrew-date', function (\Illuminate\Http\Request $request) {
+        $date = $request->query('date');
+        if (!$date) return response()->json([]);
+        $svc = app(\App\Services\HebrewDateService::class);
+        $h   = $svc->gregorianToHebrew($date);
+        return response()->json([
+            'month' => $h['month'],
+            'day'   => $h['day'],
+            'full'  => "{$h['day']} {$h['month_name']} {$h['year']}",
+        ]);
+    })->name('yahrtzeits.hebrew-date');
 
     // QuickBooks
     Route::get('/qb', [QbController::class, 'index'])->name('qb');
@@ -108,6 +148,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Email Reminders
     Route::get('/emails', [EmailReminderController::class, 'index'])->name('emails');
+    Route::get('/emails/sends/page', [EmailReminderController::class, 'recentSendsAjax'])->name('emails.sends.ajax');
     Route::post('/emails/balance/send', [EmailReminderController::class, 'sendBalanceReminder'])->name('emails.balance.send');
     Route::post('/emails/balance/preview', [EmailReminderController::class, 'previewBalance'])->name('emails.balance.preview');
     Route::post('/emails/balance/test', [EmailReminderController::class, 'sendBalanceReminderTest'])->name('emails.balance.test');
@@ -115,6 +156,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/emails/statement/test', [EmailReminderController::class, 'sendGivingStatementTest'])->name('emails.statement.test');
     Route::post('/emails/statement/preview', [EmailReminderController::class, 'previewStatement'])->name('emails.statement.preview');
     Route::get('/members/{id}/email', [EmailReminderController::class, 'redirectToMemberEmail'])->name('members.email');
+
+    // Applications
+    Route::get('/applications', [ApplicationController::class, 'index'])->name('applications.index');
+    Route::get('/applications/{id}', [ApplicationController::class, 'show'])->name('applications.show');
+    Route::post('/applications/{id}/approve', [ApplicationController::class, 'approve'])->name('applications.approve');
+    Route::post('/applications/{id}/reject', [ApplicationController::class, 'reject'])->name('applications.reject');
 
     // Users
     Route::get('/users', [UserManagementController::class, 'index'])->name('users');

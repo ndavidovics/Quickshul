@@ -184,35 +184,17 @@
 </div>
 
 {{-- Recent sends --}}
-@if($recentSends->count())
 <div class="card" style="margin-top:1.25rem">
     <div class="card-title">Recent Sends</div>
     <table class="table">
         <thead>
             <tr><th>Sent</th><th>Family</th><th>Recipient</th><th>Subject</th><th>Status</th></tr>
         </thead>
-        <tbody>
-            @foreach($recentSends as $send)
-            <tr>
-                <td class="text-sm text-muted">{{ $send->created_at->format('M j, Y g:i a') }} <span style="font-size:0.7rem;opacity:0.6">CST</span></td>
-                <td class="text-sm">{{ $send->family?->name ?? '—' }}</td>
-                <td class="text-sm text-muted" style="font-size:0.78rem">{{ $send->recipient_email }}</td>
-                <td class="text-sm" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ $send->subject }}</td>
-                <td>
-                    @if($send->status->value === 'sent')
-                        <span class="badge badge-green">Sent</span>
-                    @elseif($send->status->value === 'pending')
-                        <span class="badge badge-muted">Pending</span>
-                    @else
-                        <span class="badge badge-red" title="{{ $send->error }}">Failed</span>
-                    @endif
-                </td>
-            </tr>
-            @endforeach
+        <tbody id="recent-sends-tbody">
+            @include('admin.emails._recent_sends')
         </tbody>
     </table>
 </div>
-@endif
 
 <script>
 (function () {
@@ -374,6 +356,25 @@
             alert('Request failed.');
         });
     });
+    // ----- Recent sends: AJAX pagination -----
+    (function () {
+        var tbody = document.getElementById('recent-sends-tbody');
+        if (!tbody) return;
+        tbody.addEventListener('click', function (e) {
+            var link = e.target.closest('a[href]');
+            if (!link) return;
+            e.preventDefault();
+            var url = new URL(link.href);
+            var page = url.searchParams.get('page') || '1';
+            tbody.style.opacity = '0.5';
+            fetch('{{ route("admin.emails.sends.ajax") }}?page=' + page, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (d) { tbody.innerHTML = d.html; tbody.style.opacity = ''; })
+                .catch(function () { tbody.style.opacity = ''; });
+        });
+    })();
 })();
 </script>
 @endsection

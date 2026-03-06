@@ -428,6 +428,10 @@
             <div class="card-footer">
                 <p>Having trouble accessing your account?<br>
                 Contact the synagogue office for assistance at <a href="mailto:exec@yiom.org">exec@yiom.org</a>.</p>
+                <p style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border)">
+                    Not yet a member?
+                    <a href="{{ route('apply') }}" style="color:var(--navy);font-weight:600;text-decoration:none">Apply for membership &rarr;</a>
+                </p>
             </div>
         </div>
 

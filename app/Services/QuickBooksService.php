@@ -215,6 +215,35 @@ class QuickBooksService
     }
 
     /**
+     * Fetch specific invoices by their QB IDs. Used to refresh pledge balances
+     * after a payment sync when the invoice delta query misses them (QB does not
+     * update an invoice's LastUpdatedTime when a payment is applied to it).
+     * Returns array keyed by QB invoice ID → invoice object.
+     */
+    public function getInvoicesByIds(array $ids): array
+    {
+        if (empty($ids)) return [];
+
+        $client = $this->getClient();
+        $all    = [];
+
+        // Chunk to avoid QB query string limits
+        foreach (array_chunk($ids, 100) as $chunk) {
+            $idList   = implode("','", $chunk);
+            $sql      = "SELECT * FROM Invoice WHERE Id IN ('{$idList}')";
+            $invoices = $client->Query($sql);
+            $error    = $client->getLastError();
+            if ($error || !$invoices) continue;
+
+            foreach ((array)$invoices as $inv) {
+                $all[(string)$inv->Id] = $inv;
+            }
+        }
+
+        return $all;
+    }
+
+    /**
      * Fetch all SalesReceipts from QB.
      */
     public function getSalesReceipts(array $itemMap, ?\DateTimeInterface $changedSince = null): array
@@ -527,6 +556,37 @@ class QuickBooksService
         }
 
         return $result->Id ?? null;
+    }
+
+    public function createCustomer(Family $family): bool
+    {
+        $client = $this->getClient();
+
+        $customerData = [
+            'DisplayName' => $family->name,
+        ];
+
+        if ($family->phone) {
+            $customerData['PrimaryPhone'] = ['FreeFormNumber' => $family->phone];
+        }
+
+        if ($family->address || $family->city) {
+            $customerData['BillAddr'] = [
+                'Line1'                  => $family->address,
+                'City'                   => $family->city,
+                'CountrySubDivisionCode' => $family->state,
+                'PostalCode'             => $family->zip,
+            ];
+        }
+
+        $customer = \QuickBooksOnline\API\Facades\Customer::create($customerData);
+        $result   = $client->Add($customer);
+        $error    = $client->getLastError();
+
+        if ($error || !$result) return false;
+
+        $family->update(['qb_customer_id' => $result->Id]);
+        return true;
     }
 
     public function updateCustomer(Family $family): bool

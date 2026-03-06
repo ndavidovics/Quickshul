@@ -10,18 +10,14 @@
 @else
 
 {{-- Balance summary --}}
-<div class="grid-3" style="margin-bottom:1.5rem">
+<div class="grid-2" style="margin-bottom:1.5rem">
     <div class="stat-card">
         <div class="stat-label">Outstanding Balance</div>
-        <div class="stat-value">${{ number_format($family->outstanding_balance, 2) }}</div>
+        <div class="stat-value {{ $family->outstanding_balance > 0 ? '' : 'gold' }}">${{ number_format($family->outstanding_balance, 2) }}</div>
     </div>
     <div class="stat-card">
-        <div class="stat-label">Total Pledged</div>
-        <div class="stat-value gold">${{ number_format($family->total_pledged, 2) }}</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">Total Paid</div>
-        <div class="stat-value gold">${{ number_format($family->total_paid, 2) }}</div>
+        <div class="stat-label">Total Donated (Past 12 Months)</div>
+        <div class="stat-value gold">${{ number_format($paidPast12Months, 2) }}</div>
     </div>
 </div>
 
@@ -49,45 +45,15 @@
 @endif
 
 {{-- Pledge / Invoice History --}}
-@if($pledges->total() > 0)
 <div class="card" style="margin-bottom:1.5rem">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
         <div class="card-title" style="margin-bottom:0">Pledge History</div>
         <a href="{{ route('financial.export.pledges') }}" class="btn btn-outline btn-sm" title="Export CSV">⬇ CSV</a>
     </div>
-    <table class="table">
-        <thead>
-            <tr><th>Date</th><th>Description</th><th>Amount</th><th>Balance Due</th><th>Status</th></tr>
-        </thead>
-        <tbody>
-            @foreach($pledges as $pledge)
-            <tr>
-                <td class="text-sm text-muted">{{ $pledge->invoice_date->format('M j, Y') }}</td>
-                <td class="text-sm">{{ $pledge->description ?: '—' }}</td>
-                <td style="font-weight:600;color:var(--gold)">${{ number_format($pledge->amount, 2) }}</td>
-                <td class="text-sm">
-                    @if((float)$pledge->balance > 0)
-                        <span style="color:var(--gold)">${{ number_format($pledge->balance, 2) }}</span>
-                    @else
-                        <span class="text-muted">—</span>
-                    @endif
-                </td>
-                <td>
-                    @if($pledge->status === 'paid')
-                        <span class="badge badge-green">Paid</span>
-                    @elseif($pledge->status === 'voided')
-                        <span class="badge badge-muted">Voided</span>
-                    @else
-                        <span class="badge badge-muted">Open</span>
-                    @endif
-                </td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
-    <div style="margin-top:0.75rem">{{ $pledges->links('vendor.pagination.simple-default') }}</div>
+    <div id="pledges-body">
+        @include('member.financial._pledges')
+    </div>
 </div>
-@endif
 
 {{-- Payment history --}}
 <div class="card">
@@ -95,37 +61,55 @@
         <div class="card-title" style="margin-bottom:0">Payment History</div>
         <a href="{{ route('financial.export.payments') }}" class="btn btn-outline btn-sm" title="Export CSV">⬇ CSV</a>
     </div>
-    @if($payments->isEmpty())
-        <p class="text-muted text-sm">No payments on record.</p>
-    @else
-    <table class="table">
-        <thead>
-            <tr><th>Date</th><th>Description</th><th>Amount</th><th>Reference</th><th>Status</th></tr>
-        </thead>
-        <tbody>
-            @foreach($payments as $p)
-            <tr>
-                <td class="text-sm">{{ $p->payment_date->format('M j, Y') }}</td>
-                <td class="text-sm text-muted">{{ $p->description ?: '—' }}</td>
-                <td style="font-weight:600;color:var(--gold)">${{ number_format($p->amount, 2) }}</td>
-                <td class="text-muted text-sm" style="font-family:monospace;font-size:0.72rem">
-                    {{ $p->qb_transaction_id ?? $p->qb_sales_receipt_id ?? $p->paypal_transaction_id ?? '—' }}
-                </td>
-                <td>
-                    @if($p->status->value === 'completed')
-                        <span class="badge badge-green">Completed</span>
-                    @elseif($p->status->value === 'pending')
-                        <span class="badge badge-muted">Pending</span>
-                    @else
-                        <span class="badge badge-red">Failed</span>
-                    @endif
-                </td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
-    <div style="margin-top:0.75rem">{{ $payments->links('vendor.pagination.simple-default') }}</div>
-    @endif
+    <div id="payments-body">
+        @include('member.financial._payments')
+    </div>
 </div>
+
+@section('scripts')
+<script>
+(function () {
+    function ajaxPaginate(containerId, endpoint) {
+        var container = document.getElementById(containerId);
+        if (!container) return;
+
+        container.addEventListener('click', function (e) {
+            var link = e.target.closest('a[href]');
+            if (!link) return;
+            e.preventDefault();
+
+            var url = new URL(link.href);
+            // Accept ?page=, ?lp=, ?pp=, or any numeric-looking query param
+            var page = url.searchParams.get('page')
+                    || url.searchParams.get('lp')
+                    || url.searchParams.get('pp')
+                    || '1';
+            url.searchParams.forEach(function (v) { if (/^\d+$/.test(v)) page = v; });
+
+            container.style.opacity = '0.5';
+            container.style.pointerEvents = 'none';
+
+            fetch(endpoint + '?page=' + page, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                container.innerHTML = data.html;
+                container.style.opacity = '';
+                container.style.pointerEvents = '';
+                container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            })
+            .catch(function () {
+                container.style.opacity = '';
+                container.style.pointerEvents = '';
+            });
+        });
+    }
+
+    ajaxPaginate('pledges-body',  '{{ route('financial.pledges') }}');
+    ajaxPaginate('payments-body', '{{ route('financial.payments') }}');
+})();
+</script>
+@endsection
 @endif
 @endsection

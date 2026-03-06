@@ -66,7 +66,7 @@
         <tbody>
             @foreach($family->members as $m)
             <tr>
-                <td><span style="font-weight:500">{{ $m->full_name }}</span> @if($m->isDeceased()) <span class="badge badge-muted">†</span> @endif</td>
+                <td><span style="font-weight:500">{{ $m->full_name }}</span></td>
                 <td style="font-size:0.95rem;direction:rtl">{{ $m->hebrew_name ?? '—' }}</td>
                 <td><span class="badge badge-muted">{{ ucfirst($m->role) }}</span></td>
                 <td class="text-muted text-sm">{{ $m->date_of_birth?->format('M j, Y') ?? '—' }}</td>
@@ -78,8 +78,41 @@
     </table>
 </div>
 
+{{-- Yahrtzeits --}}
+@if($family->yahrtzeits->isNotEmpty())
+<div class="card" style="margin-top:1.25rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+        <div class="card-title" style="margin-bottom:0">Yahrtzeits</div>
+        <a href="{{ route('admin.members.edit', $family->id) }}#yahrtzeits" class="btn btn-outline btn-sm">Manage</a>
+    </div>
+    <table class="table">
+        <thead><tr><th>Name</th><th>Hebrew Name</th><th>Relationship</th><th>Date of Death</th><th>Annual Yahrzeit</th></tr></thead>
+        <tbody>
+            @foreach($family->yahrtzeits as $y)
+            @php
+                $months = [1=>'Tishrei',2=>'Cheshvan',3=>'Kislev',4=>'Tevet',5=>'Shevat',
+                           6=>'Adar I',7=>'Adar/Adar II',8=>'Nisan',9=>'Iyar',10=>'Sivan',
+                           11=>'Tammuz',12=>'Av',13=>'Elul'];
+            @endphp
+            <tr>
+                <td style="font-weight:500">{{ $y->full_name }}</td>
+                <td style="direction:rtl;font-family:serif;font-size:0.95rem">{{ $y->hebrew_name ?? '—' }}</td>
+                <td>{{ $y->relationship_label ?? '—' }}</td>
+                <td class="text-muted text-sm">{{ $y->date_of_death?->format('M j, Y') ?? '—' }}</td>
+                <td class="text-sm">
+                    {{ $y->hebrew_day }} {{ $months[$y->hebrew_month] ?? '' }}
+                    @if($y->hebrew_date_of_death)
+                        <span class="text-muted" style="font-size:0.75rem;margin-left:0.4rem">{{ $y->hebrew_date_of_death }}</span>
+                    @endif
+                </td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</div>
+@endif
+
 {{-- Pledges --}}
-@if($pledges->total() > 0)
 <div class="card" style="margin-top:1.25rem">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
         <div class="card-title" style="margin-bottom:0">Pledge / Invoice History</div>
@@ -87,35 +120,11 @@
     </div>
     <table class="table">
         <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Balance Due</th><th>Status</th></tr></thead>
-        <tbody>
-            @foreach($pledges as $pledge)
-            <tr>
-                <td class="text-sm text-muted">{{ $pledge->invoice_date->format('M j, Y') }}</td>
-                <td class="text-sm">{{ $pledge->description ?: '—' }}</td>
-                <td style="color:var(--gold);font-weight:600">${{ number_format($pledge->amount,2) }}</td>
-                <td class="text-sm">
-                    @if((float)$pledge->balance > 0)
-                        <span style="color:var(--gold)">${{ number_format($pledge->balance,2) }}</span>
-                    @else
-                        <span class="text-muted">—</span>
-                    @endif
-                </td>
-                <td>
-                    @if($pledge->status === 'paid')
-                        <span class="badge badge-green">Paid</span>
-                    @elseif($pledge->status === 'voided')
-                        <span class="badge badge-muted">Voided</span>
-                    @else
-                        <span class="badge badge-muted">Open</span>
-                    @endif
-                </td>
-            </tr>
-            @endforeach
+        <tbody id="pledges-tbody">
+            @include('admin.members._pledges')
         </tbody>
     </table>
-    <div style="margin-top:0.75rem">{{ $pledges->links('vendor.pagination.simple-default') }}</div>
 </div>
-@endif
 
 {{-- Payments --}}
 <div class="card" style="margin-top:1.25rem">
@@ -124,23 +133,38 @@
         <a href="{{ route('admin.members.export.payments', $family->id) }}" class="btn btn-outline btn-sm" title="Export CSV">⬇ CSV</a>
     </div>
     <table class="table">
-        <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Reference</th><th>Status</th></tr></thead>
-        <tbody>
-            @forelse($payments as $p)
-            <tr>
-                <td class="text-sm">{{ $p->payment_date->format('M j, Y') }}</td>
-                <td class="text-sm text-muted">{{ $p->description ?: '—' }}</td>
-                <td style="color:var(--gold);font-weight:600">${{ number_format($p->amount,2) }}</td>
-                <td class="text-muted text-sm" style="font-family:monospace;font-size:0.72rem">{{ $p->qb_transaction_id ?? $p->qb_sales_receipt_id ?? $p->paypal_transaction_id ?? '—' }}</td>
-                <td><span class="badge {{ $p->status->value==='completed'?'badge-green':($p->status->value==='pending'?'badge-muted':'badge-red') }}">{{ $p->status->label() }}</span></td>
-            </tr>
-            @empty
-            <tr><td colspan="5" style="color:var(--text-muted);text-align:center;padding:1rem">No payments on record.</td></tr>
-            @endforelse
+        <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Reference</th></tr></thead>
+        <tbody id="payments-tbody">
+            @include('admin.members._payments')
         </tbody>
     </table>
-    <div style="margin-top:0.75rem">{{ $payments->links('vendor.pagination.simple-default') }}</div>
 </div>
+
+@section('scripts')
+<script>
+(function () {
+    function ajaxPaginate(tbodyId, endpoint) {
+        var tbody = document.getElementById(tbodyId);
+        if (!tbody) return;
+        tbody.addEventListener('click', function (e) {
+            var link = e.target.closest('a[href]');
+            if (!link) return;
+            e.preventDefault();
+            var url = new URL(link.href);
+            var page = url.searchParams.get('page') || '1';
+            url.searchParams.forEach(function (v) { if (/^\d+$/.test(v)) page = v; });
+            tbody.style.opacity = '0.5';
+            fetch(endpoint + '?page=' + page, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r) { return r.json(); })
+                .then(function (d) { tbody.innerHTML = d.html; tbody.style.opacity = ''; })
+                .catch(function () { tbody.style.opacity = ''; });
+        });
+    }
+    ajaxPaginate('pledges-tbody',  '{{ route('admin.members.pledges.ajax', $family->id) }}');
+    ajaxPaginate('payments-tbody', '{{ route('admin.members.payments.ajax', $family->id) }}');
+})();
+</script>
+@endsection
 
 {{-- Audit log --}}
 @if($auditLogs->count())

@@ -187,6 +187,15 @@
                 <a href="{{ route('admin.members') }}" class="sidebar-link {{ request()->routeIs('admin.members*') ? 'active' : '' }}">
                     <span class="sidebar-icon">👥</span> All Members
                 </a>
+                <a href="{{ route('admin.yahrtzeits.index') }}" class="sidebar-link {{ request()->routeIs('admin.yahrtzeits*') ? 'active' : '' }}">
+                    <span class="sidebar-icon">🕯</span> Yahrtzeits
+                </a>
+                <a href="{{ route('admin.financials.payments') }}" class="sidebar-link {{ request()->routeIs('admin.financials.payments*') ? 'active' : '' }}">
+                    <span class="sidebar-icon">💳</span> Payments
+                </a>
+                <a href="{{ route('admin.financials.pledges') }}" class="sidebar-link {{ request()->routeIs('admin.financials.pledges*') ? 'active' : '' }}">
+                    <span class="sidebar-icon">📄</span> Pledges
+                </a>
             </div>
             <div class="sidebar-section">
                 <div class="sidebar-label">Integrations</div>
@@ -202,6 +211,13 @@
             </div>
             <div class="sidebar-section">
                 <div class="sidebar-label">System</div>
+                <a href="{{ route('admin.applications.index') }}" class="sidebar-link {{ request()->routeIs('admin.applications*') ? 'active' : '' }}">
+                    <span class="sidebar-icon">📋</span> Applications
+                    @php $pendingCount = \App\Models\MemberApplication::where('status','pending')->count(); @endphp
+                    @if($pendingCount > 0)
+                        <span style="margin-left:auto;background:var(--gold);color:var(--navy-dark);border-radius:10px;padding:0.1rem 0.45rem;font-size:0.65rem;font-weight:700">{{ $pendingCount }}</span>
+                    @endif
+                </a>
                 <a href="{{ route('admin.users') }}" class="sidebar-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}">
                     <span class="sidebar-icon">🔑</span> User Management
                 </a>

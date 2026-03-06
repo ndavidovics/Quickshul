@@ -155,10 +155,22 @@ class EmailReminderService
     public function send(EmailSend $emailSend): bool
     {
         try {
-            Mail::html($emailSend->body, function ($message) use ($emailSend) {
+            $ccEmails = [];
+            if ($emailSend->family_id) {
+                $ccEmails = \App\Models\FamilyEmail::where('family_id', $emailSend->family_id)
+                    ->where('is_primary', false)
+                    ->where('email', '!=', $emailSend->recipient_email)
+                    ->pluck('email')
+                    ->toArray();
+            }
+
+            Mail::html($emailSend->body, function ($message) use ($emailSend, $ccEmails) {
                 $message->to($emailSend->recipient_email)
                         ->subject($emailSend->subject)
                         ->from(config('mail.from.address'), config('mail.from.name'));
+                if ($ccEmails) {
+                    $message->cc($ccEmails);
+                }
             });
 
             $emailSend->update([

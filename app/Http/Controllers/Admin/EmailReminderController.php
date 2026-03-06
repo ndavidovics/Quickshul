@@ -20,7 +20,7 @@ class EmailReminderController extends Controller
 
     public function index(Request $request)
     {
-        $recentSends         = EmailSend::with('family')->latest()->limit(50)->get();
+        $recentSends         = EmailSend::with('family.emails')->latest()->paginate(25);
         $familiesWithBalance = Family::withBalance()->orderBy('name')->get(['id', 'name', 'outstanding_balance']);
         $allFamilies         = Family::orderBy('name')->get(['id', 'name', 'outstanding_balance']);
 
@@ -188,6 +188,12 @@ class EmailReminderController extends Controller
         }
 
         return response()->json(['error' => 'Failed to send test email. Check mail configuration.'], 500);
+    }
+
+    public function recentSendsAjax()
+    {
+        $recentSends = EmailSend::with('family.emails')->latest()->paginate(25);
+        return response()->json(['html' => view('admin.emails._recent_sends', compact('recentSends'))->render()]);
     }
 
     // -------------------------------------------------------------------------
