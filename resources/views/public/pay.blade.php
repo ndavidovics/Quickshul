@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pay Online — Young Israel of Memphis</title>
+<title>Pay Online — {{ $tenant->name ?? config('app.name') }}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0ede8;color:#1a2d5a;min-height:100vh}
@@ -46,13 +46,17 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0ede8;color:#1a2d5
 .error-box{background:#fff5f5;border:1px solid #fc8181;border-radius:8px;padding:1rem;color:#c53030;font-size:0.875rem;margin-bottom:1rem;display:none}
 .footer{text-align:center;color:#999;font-size:0.75rem;margin-top:2rem;line-height:1.8}
 .no-balance{text-align:center;color:#888;padding:1.5rem 0;font-size:0.9rem}
+.fee-row{display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0;border-top:1px solid #e8e4dc;margin-top:0.25rem}
+.fee-row label{font-size:0.875rem;color:#555;cursor:pointer;user-select:none;display:flex;align-items:center;gap:0.5rem;flex:1}
+.fee-row input[type=checkbox]{width:16px;height:16px;accent-color:#c9a84c;cursor:pointer;flex-shrink:0}
+.fee-note{font-size:0.78rem;color:#888;margin-left:auto}
 </style>
 </head>
 <body>
 
 <div class="header">
-    <div class="header-logo">Young Israel of Memphis</div>
-    <div class="header-sub">Torah &middot; Tefillah &middot; Tradition</div>
+    <div class="header-logo">{{ $tenant->name ?? config('app.name') }}</div>
+    <div class="header-sub">{{ $tenant->tagline ?? '' }}</div>
 </div>
 
 <div class="container">
@@ -69,7 +73,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0ede8;color:#1a2d5
     <div class="card">
         <div class="no-balance">
             You have no outstanding balances at this time.<br>
-            <span style="font-size:0.82rem;margin-top:0.4rem;display:block">Thank you for your continued support of Young Israel of Memphis.</span>
+            <span style="font-size:0.82rem;margin-top:0.4rem;display:block">Thank you for your continued support of {{ $tenant->name ?? config('app.name') }}.</span>
         </div>
     </div>
     @else
@@ -109,6 +113,14 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0ede8;color:#1a2d5
         </div>
         @endforeach
 
+        <div class="fee-row">
+            <label>
+                <input type="checkbox" id="cover-fee-checkbox">
+                Cover 2% processing fee?
+            </label>
+            <span class="fee-note" id="fee-note" style="display:none"></span>
+        </div>
+
         <div class="total-row">
             <span class="total-label">Total Payment</span>
             <span class="total-amount" id="total-display">$0.00</span>
@@ -144,8 +156,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0ede8;color:#1a2d5
     @endif
 
     <div class="footer">
-        Young Israel of Memphis &bull; 225 S Yates Rd, Memphis, TN 38120<br>
-        Questions? Contact us at <a href="mailto:exec@yiom.org" style="color:#c9a84c">exec@yiom.org</a> or (901) 761-1291
+        {{ $tenant->name ?? config('app.name') }}@if($tenant->org_address ?? null) &bull; {{ $tenant->org_address }}@endif<br>
+        @if($tenant->org_email ?? null)Questions? Contact us at <a href="mailto:{{ $tenant->org_email }}" style="color:#c9a84c">{{ $tenant->org_email }}</a>@if($tenant->org_phone ?? null) or {{ $tenant->org_phone }}@endif@endif
     </div>
 </div>
 
@@ -175,13 +187,36 @@ function getAmounts() {
     return amounts;
 }
 
-function getTotal() {
+function getBaseTotal() {
     return Object.values(getAmounts()).reduce(function(s, v) { return s + v; }, 0);
 }
 
-function updateTotal() {
-    document.getElementById('total-display').textContent = '$' + getTotal().toFixed(2);
+function coveringFee() {
+    return document.getElementById('cover-fee-checkbox').checked;
 }
+
+function getFeeAmount() {
+    return coveringFee() ? Math.round(getBaseTotal() * 0.02 * 100) / 100 : 0;
+}
+
+function getTotal() {
+    return Math.round((getBaseTotal() + getFeeAmount()) * 100) / 100;
+}
+
+function updateTotal() {
+    var base = getBaseTotal();
+    var fee  = getFeeAmount();
+    document.getElementById('total-display').textContent = '$' + (base + fee).toFixed(2);
+    var feeNote = document.getElementById('fee-note');
+    if (fee > 0) {
+        feeNote.textContent = '+$' + fee.toFixed(2) + ' fee';
+        feeNote.style.display = '';
+    } else {
+        feeNote.style.display = 'none';
+    }
+}
+
+document.getElementById('cover-fee-checkbox').addEventListener('change', updateTotal);
 
 function setFull(btn) {
     var row = btn.closest('.pledge-row');
@@ -243,7 +278,7 @@ function createOrder() {
     return fetch('/pay/' + TOKEN + '/create-order', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-        body:    JSON.stringify({ amounts: amounts }),
+        body:    JSON.stringify({ amounts: amounts, cover_fee: coveringFee() }),
     }).then(function(r) {
         return r.json().then(function(data) {
             if (!r.ok) throw new Error(data.error || 'Failed to create order.');
@@ -326,13 +361,13 @@ paypal.Buttons({
                 currencyCode:         'USD',
                 merchantCapabilities: config.merchantCapabilities,
                 supportedNetworks:    config.supportedNetworks,
-                total: { label: 'Young Israel of Memphis', type: 'final', amount: total.toFixed(2) },
+                total: { label: '{{ $tenant->name ?? config("app.name") }}', type: 'final', amount: total.toFixed(2) },
             });
 
             session.onvalidatemerchant = function (event) {
                 applepay.validateMerchant({
                     validationUrl: event.validationURL,
-                    displayName:   'Young Israel of Memphis',
+                    displayName:   '{{ $tenant->name ?? config("app.name") }}',
                 }).then(function (result) {
                     session.completeMerchantValidation(result.merchantSession);
                 }).catch(function (err) {
@@ -405,7 +440,7 @@ paypal.Buttons({
                                 currencyCode:     'USD',
                                 totalPriceStatus: 'FINAL',
                                 totalPrice:       total.toFixed(2),
-                                totalPriceLabel:  'Payment to Young Israel of Memphis',
+                                totalPriceLabel:  'Payment to {{ $tenant->name ?? config("app.name") }}',
                             },
                         }).then(function (paymentData) {
                             return googlepay.confirmOrder({

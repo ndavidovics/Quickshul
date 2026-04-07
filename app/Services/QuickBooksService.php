@@ -15,11 +15,17 @@ class QuickBooksService
 {
     public function getConnection(): ?QbConnection
     {
+        // HasTenant global scope already filters by tenant_id when a tenant is bound.
+        // Returns null (not an exception) so callers can check isConnected().
         return QbConnection::first();
     }
 
     public function isConnected(): bool
     {
+        // Also requires qb_enabled on the tenant
+        if (app()->bound('tenant') && !app('tenant')->qb_enabled) {
+            return false;
+        }
         $conn = $this->getConnection();
         return $conn !== null && !$conn->isRefreshTokenExpired();
     }
@@ -481,6 +487,63 @@ class QuickBooksService
 
         if ($error) {
             throw new \RuntimeException('QB createPledgePayment error: ' . $error->getResponseBody());
+        }
+
+        $qbPaymentId = $result->Id ?? null;
+
+        if ($qbPaymentId) {
+            $payment->update(['qb_transaction_id' => $qbPaymentId]);
+        }
+
+        return $qbPaymentId;
+    }
+
+    /**
+     * Create a single QB Payment applied across one or more invoices with per-invoice amounts.
+     * Use this when a portal payment covers multiple pledges (e.g. $750 to invoice A, $200 to invoice B).
+     *
+     * $pledgeAmounts: array of ['pledge' => Pledge, 'amount' => float]
+     */
+    public function createMultiPledgePayment(Payment $payment, array $pledgeAmounts, string $memo): ?string
+    {
+        $client = $this->getClient();
+        $family = $payment->family;
+
+        if (!$family->qb_customer_id) return null;
+
+        $lines = [];
+        foreach ($pledgeAmounts as $item) {
+            $pledge = $item['pledge'];
+            $amount = (float)$item['amount'];
+            if ($amount <= 0) continue;
+
+            if ($pledge->qb_invoice_id) {
+                $lines[] = [
+                    'Amount'    => $amount,
+                    'LinkedTxn' => [[
+                        'TxnId'   => $pledge->qb_invoice_id,
+                        'TxnType' => 'Invoice',
+                    ]],
+                ];
+            }
+            // If no qb_invoice_id the amount contributes to TotalAmt but is unapplied — QB handles this.
+        }
+
+        $qbPayment = \QuickBooksOnline\API\Facades\Payment::create([
+            'CustomerRef'         => ['value' => $family->qb_customer_id],
+            'TotalAmt'            => (float)$payment->amount,
+            'TxnDate'             => $payment->payment_date->format('Y-m-d'),
+            'PrivateNote'         => $memo,
+            'PaymentMethodRef'    => ['value' => '9'],   // PayPal
+            'DepositToAccountRef' => ['value' => '975'], // Paypal for Payments
+            'Line'                => $lines ?: [],
+        ]);
+
+        $result = $client->Add($qbPayment);
+        $error  = $client->getLastError();
+
+        if ($error) {
+            throw new \RuntimeException('QB createMultiPledgePayment error: ' . $error->getResponseBody());
         }
 
         $qbPaymentId = $result->Id ?? null;

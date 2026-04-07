@@ -18,10 +18,29 @@ class FinancialController extends Controller
     public function index()
     {
         $family   = auth()->user()->family;
-        $payments = $family ? $family->payments()->completed()->paginate(15, ['*'], 'pp') : collect();
-        $pledges  = $family ? $family->pledges()->paginate(15, ['*'], 'lp') : collect();
+        $payments = $family ? $family->payments()->completed()->paginate(15) : collect();
+        $pledges  = $family ? $family->pledges()->paginate(15) : collect();
+        $paidPast12Months = $family
+            ? $family->payments()->completed()->where('payment_date', '>=', now()->subYear())->sum('amount')
+            : 0;
 
-        return view('member.financial', compact('family', 'payments', 'pledges'));
+        return view('member.financial', compact('family', 'payments', 'pledges', 'paidPast12Months'));
+    }
+
+    public function pledgesPage(Request $request)
+    {
+        $family  = auth()->user()->family;
+        if (!$family) abort(403);
+        $pledges = $family->pledges()->paginate(15);
+        return response()->json(['html' => view('member.financial._pledges', compact('pledges'))->render()]);
+    }
+
+    public function paymentsPage(Request $request)
+    {
+        $family   = auth()->user()->family;
+        if (!$family) abort(403);
+        $payments = $family->payments()->completed()->paginate(15);
+        return response()->json(['html' => view('member.financial._payments', compact('payments'))->render()]);
     }
 
     public function exportPayments()
@@ -297,11 +316,15 @@ class FinancialController extends Controller
             'amount'      => 'required|numeric|min:1|max:99999',
             'description' => 'nullable|string|max:255',
             'pledge_id'   => 'nullable|integer|exists:pledges,id',
+            'cover_fee'   => 'nullable|boolean',
         ]);
 
         $amount      = (float)$validated['amount'];
         $description = trim($validated['description'] ?? '') ?: 'General Donation';
         $pledgeId    = $validated['pledge_id'] ?? null;
+        $coverFee    = (bool)($validated['cover_fee'] ?? false);
+        $feeAmount   = $coverFee ? round($amount * 0.02, 2) : 0.0;
+        $grandTotal  = round($amount + $feeAmount, 2);
 
         if ($pledgeId) {
             $pledge = Pledge::where('id', $pledgeId)->where('family_id', $family->id)->first();
@@ -311,7 +334,7 @@ class FinancialController extends Controller
         }
 
         try {
-            $orderId = $this->paypal->createOrderForSdk($amount, $family->id, $description);
+            $orderId = $this->paypal->createOrderForSdk($grandTotal, $family->id, $description);
 
             Payment::create([
                 'family_id'       => $family->id,
@@ -322,7 +345,11 @@ class FinancialController extends Controller
                 'paypal_order_id' => $orderId,
                 'description'     => $description,
                 'status'          => 'pending',
-                'notes'           => $pledgeId ? 'Apple Pay pledge payment' : 'Apple Pay donation',
+                'notes'           => json_encode([
+                    'source'     => $pledgeId ? 'Apple Pay pledge payment' : 'Apple Pay donation',
+                    'cover_fee'  => $coverFee,
+                    'fee_amount' => $feeAmount,
+                ]),
             ]);
 
             return response()->json(['id' => $orderId]);
@@ -346,11 +373,15 @@ class FinancialController extends Controller
             'pledge_id'    => 'nullable|integer|exists:pledges,id',
             'donor_name'   => 'nullable|string|max:255',
             'donor_email'  => 'nullable|email',
+            'cover_fee'    => 'nullable|boolean',
         ]);
 
         $amount      = (float)$validated['amount'];
         $description = trim($validated['description'] ?? '') ?: 'General Donation';
         $pledgeId    = $validated['pledge_id'] ?? null;
+        $coverFee    = (bool)($validated['cover_fee'] ?? false);
+        $feeAmount   = $coverFee ? round($amount * 0.02, 2) : 0.0;
+        $grandTotal  = round($amount + $feeAmount, 2);
 
         // Validate pledge belongs to this family
         if ($pledgeId) {
@@ -367,7 +398,7 @@ class FinancialController extends Controller
                 'email' => $validated['donor_email'] ?? null,
             ], fn($v) => !is_null($v));
 
-            $orderId = $this->paypal->createOrderForSdk($amount, $family->id, $description, $payerInfo);
+            $orderId = $this->paypal->createOrderForSdk($grandTotal, $family->id, $description, $payerInfo);
 
             Payment::create([
                 'family_id'       => $family->id,
@@ -378,7 +409,11 @@ class FinancialController extends Controller
                 'paypal_order_id' => $orderId,
                 'description'     => $description,
                 'status'          => 'pending',
-                'notes'           => $pledgeId ? 'Pledge payment via JS SDK' : 'Donation via JS SDK',
+                'notes'           => json_encode([
+                    'source'     => $pledgeId ? 'Pledge payment via JS SDK' : 'Donation via JS SDK',
+                    'cover_fee'  => $coverFee,
+                    'fee_amount' => $feeAmount,
+                ]),
             ]);
 
             return response()->json(['id' => $orderId]);
@@ -409,6 +444,9 @@ class FinancialController extends Controller
         try {
             $capture = $this->paypal->captureOrder($orderId);
 
+            $notes     = json_decode($payment->notes, true) ?? [];
+            $feeAmount = (float)($notes['fee_amount'] ?? 0);
+
             $payment->update([
                 'status'                => 'completed',
                 'paypal_transaction_id' => $capture['transaction_id'],
@@ -419,6 +457,20 @@ class FinancialController extends Controller
             $paypalFee = $capture['fee'] ?? 0;
             $memo      = 'Portal ' . ($pledge ? 'pledge payment' : 'donation') . ' via PayPal'
                        . ($payment->description ? ' — ' . $payment->description : '');
+
+            // Create fee payment if user opted in
+            $feePayment = null;
+            if ($feeAmount > 0) {
+                $feePayment = Payment::create([
+                    'family_id'   => $family->id,
+                    'amount'      => $feeAmount,
+                    'payment_date'=> today(),
+                    'method'      => 'paypal',
+                    'description' => 'Cover processing fees',
+                    'status'      => 'completed',
+                    'notes'       => 'Processing fee opted in by member',
+                ]);
+            }
 
             if ($pledge) {
                 $this->audit->log('payment.pledge.completed', $payment, [], [], "Pledge payment of \${$payment->amount} from {$family->name}: {$payment->description}");
@@ -432,7 +484,7 @@ class FinancialController extends Controller
 
                 $family->recalculateBalance();
 
-                dispatch(function () use ($payment, $pledge, $paypalFee, $memo) {
+                dispatch(function () use ($payment, $pledge, $feePayment, $paypalFee, $memo) {
                     $qb = app(\App\Services\QuickBooksService::class);
                     try {
                         $qb->createPledgePayment($payment, $pledge, $memo);
@@ -446,6 +498,14 @@ class FinancialController extends Controller
                     } catch (\Throwable $e) {
                         \Log::error("QB fee expense failed for payment #{$payment->id}: " . $e->getMessage());
                     }
+                    if ($feePayment) {
+                        try {
+                            $qb->createSalesReceipt($feePayment, '62');
+                            \Log::info("QB SalesReceipt created for processing fee payment #{$feePayment->id}");
+                        } catch (\Throwable $e) {
+                            \Log::error("QB SalesReceipt failed for fee payment #{$feePayment->id}: " . $e->getMessage());
+                        }
+                    }
                 })->afterResponse();
             } else {
                 $this->audit->log('payment.donation.completed', $payment, [], [], "Donation of \${$payment->amount} from {$family->name}: {$payment->description}");
@@ -453,7 +513,7 @@ class FinancialController extends Controller
                 $family->recalculateBalance();
 
                 $qbItemId = $this->resolveDonationItemId($payment->description ?? '');
-                dispatch(function () use ($payment, $qbItemId, $paypalFee, $memo) {
+                dispatch(function () use ($payment, $feePayment, $qbItemId, $paypalFee, $memo) {
                     $qb = app(\App\Services\QuickBooksService::class);
                     try {
                         $qb->createSalesReceipt($payment, $qbItemId);
@@ -466,6 +526,14 @@ class FinancialController extends Controller
                         \Log::info("QB fee expense created for payment #{$payment->id} (\${$paypalFee})");
                     } catch (\Throwable $e) {
                         \Log::error("QB fee expense failed for payment #{$payment->id}: " . $e->getMessage());
+                    }
+                    if ($feePayment) {
+                        try {
+                            $qb->createSalesReceipt($feePayment, '62');
+                            \Log::info("QB SalesReceipt created for processing fee payment #{$feePayment->id}");
+                        } catch (\Throwable $e) {
+                            \Log::error("QB SalesReceipt failed for fee payment #{$feePayment->id}: " . $e->getMessage());
+                        }
                     }
                 })->afterResponse();
             }
@@ -513,6 +581,9 @@ class FinancialController extends Controller
             // Step 2: capture
             $capture = $this->paypal->captureOrder($orderId);
 
+            $apNotes   = json_decode($payment->notes, true) ?? [];
+            $feeAmount = (float)($apNotes['fee_amount'] ?? 0);
+
             $payment->update([
                 'status'                => 'completed',
                 'paypal_transaction_id' => $capture['transaction_id'],
@@ -523,6 +594,19 @@ class FinancialController extends Controller
             $paypalFee = $capture['fee'] ?? 0;
             $memo      = 'Portal ' . ($pledge ? 'pledge payment' : 'donation') . ' via Apple Pay'
                        . ($payment->description ? ' — ' . $payment->description : '');
+
+            $feePayment = null;
+            if ($feeAmount > 0) {
+                $feePayment = Payment::create([
+                    'family_id'   => $family->id,
+                    'amount'      => $feeAmount,
+                    'payment_date'=> today(),
+                    'method'      => 'paypal',
+                    'description' => 'Cover processing fees',
+                    'status'      => 'completed',
+                    'notes'       => 'Processing fee opted in by member',
+                ]);
+            }
 
             if ($pledge) {
                 $this->audit->log('payment.pledge.completed', $payment, [], [], "Pledge payment of \${$payment->amount} from {$family->name}: {$payment->description}");
@@ -535,7 +619,7 @@ class FinancialController extends Controller
 
                 $family->recalculateBalance();
 
-                dispatch(function () use ($payment, $pledge, $paypalFee, $memo) {
+                dispatch(function () use ($payment, $pledge, $feePayment, $paypalFee, $memo) {
                     $qb = app(\App\Services\QuickBooksService::class);
                     try {
                         $qb->createPledgePayment($payment, $pledge, $memo);
@@ -548,6 +632,14 @@ class FinancialController extends Controller
                     } catch (\Throwable $e) {
                         \Log::error("QB fee expense failed for payment #{$payment->id}: " . $e->getMessage());
                     }
+                    if ($feePayment) {
+                        try {
+                            $qb->createSalesReceipt($feePayment, '62');
+                            \Log::info("QB SalesReceipt created for processing fee payment #{$feePayment->id}");
+                        } catch (\Throwable $e) {
+                            \Log::error("QB SalesReceipt failed for fee payment #{$feePayment->id}: " . $e->getMessage());
+                        }
+                    }
                 })->afterResponse();
             } else {
                 $this->audit->log('payment.donation.completed', $payment, [], [], "Apple Pay donation of \${$payment->amount} from {$family->name}: {$payment->description}");
@@ -555,7 +647,7 @@ class FinancialController extends Controller
                 $family->recalculateBalance();
 
                 $qbItemId = $this->resolveDonationItemId($payment->description ?? '');
-                dispatch(function () use ($payment, $qbItemId, $paypalFee, $memo) {
+                dispatch(function () use ($payment, $feePayment, $qbItemId, $paypalFee, $memo) {
                     $qb = app(\App\Services\QuickBooksService::class);
                     try {
                         $qb->createSalesReceipt($payment, $qbItemId);
@@ -567,6 +659,14 @@ class FinancialController extends Controller
                         $qb->createFeeExpense($payment, (float)$paypalFee, $memo);
                     } catch (\Throwable $e) {
                         \Log::error("QB fee expense failed for payment #{$payment->id}: " . $e->getMessage());
+                    }
+                    if ($feePayment) {
+                        try {
+                            $qb->createSalesReceipt($feePayment, '62');
+                            \Log::info("QB SalesReceipt created for processing fee payment #{$feePayment->id}");
+                        } catch (\Throwable $e) {
+                            \Log::error("QB SalesReceipt failed for fee payment #{$feePayment->id}: " . $e->getMessage());
+                        }
                     }
                 })->afterResponse();
             }

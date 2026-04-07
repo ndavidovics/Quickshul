@@ -5,6 +5,7 @@ namespace App\Services;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use App\Models\FamilyMember;
+use App\Models\Yahrtzeit;
 
 class HebrewDateService
 {
@@ -95,52 +96,73 @@ class HebrewDateService
 
     public function upcomingYahrzeits(int $familyId, int $days = 60): Collection
     {
-        $members = FamilyMember::where('family_id', $familyId)
-            ->whereNotNull('date_of_death')
-            ->orWhere(function ($q) use ($familyId) {
-                $q->where('family_id', $familyId)->whereNotNull('hebrew_date_of_death');
-            })
-            ->get();
+        $yahrtzeits = Yahrtzeit::whereHas('families', fn($q) => $q->where('id', $familyId))->get();
+        $today      = Carbon::today();
+        $results    = collect();
 
-        return $this->computeUpcoming($members, 'death', $days);
+        foreach ($yahrtzeits as $yahrtzeit) {
+            $hDay         = $yahrtzeit->hebrew_day;
+            $hMonth       = $yahrtzeit->hebrew_month;
+            $currentHYear = $this->getCurrentHebrewYear();
+
+            foreach ([$currentHYear, $currentHYear + 1] as $hYear) {
+                // Adar I (6) doesn't exist in non-leap years — observe in Adar (7)
+                $targetMonth   = ($hMonth === 6 && !$this->isLeapYear($hYear)) ? 7 : $hMonth;
+                $normalizedDay = $this->clampDayToMonth($hDay, $targetMonth, $hYear);
+
+                try {
+                    $gregorianDate = $this->hebrewToGregorian($normalizedDay, $targetMonth, $hYear);
+                } catch (\Throwable) {
+                    continue;
+                }
+
+                if ($gregorianDate->gte($today) && $gregorianDate->lte($today->copy()->addDays($days))) {
+                    $results->push([
+                        'yahrtzeit'      => $yahrtzeit,
+                        'gregorian_date' => $gregorianDate,
+                        'hebrew_date'    => [
+                            'day'        => $normalizedDay,
+                            'month'      => $targetMonth,
+                            'year'       => $hYear,
+                            'month_name' => $this->getMonthName($targetMonth, $this->isLeapYear($hYear)),
+                        ],
+                    ]);
+                    break;
+                }
+            }
+        }
+
+        return $results->sortBy(fn($r) => $r['gregorian_date']->timestamp)->values();
     }
 
     public function upcomingBirthdays(int $familyId, int $days = 60): Collection
     {
         $members = FamilyMember::where('family_id', $familyId)
-            ->living()
             ->where(function ($q) {
                 $q->whereNotNull('date_of_birth')
                   ->orWhereNotNull('hebrew_date_of_birth');
             })
             ->get();
 
-        return $this->computeUpcoming($members, 'birth', $days);
-    }
-
-    private function computeUpcoming(Collection $members, string $type, int $days): Collection
-    {
         $today   = Carbon::today();
         $results = collect();
 
         foreach ($members as $member) {
-            $hebrewDate = $this->resolveHebrewDate($member, $type);
+            $hebrewDate = $this->resolveHebrewBirthDate($member);
             if (!$hebrewDate) {
                 continue;
             }
 
             [$hDay, $hMonth, $sourceYear] = $hebrewDate;
-            $currentHYear    = $this->getCurrentHebrewYear();
+            $currentHYear = $this->getCurrentHebrewYear();
 
-            // Try current Hebrew year first, then next year
             foreach ([$currentHYear, $currentHYear + 1] as $hYear) {
-                // Map the month number from source year format to target year format
-                $targetMonth = $this->mapMonthBetweenYears($hMonth, $sourceYear, $hYear);
-                $normalizedDay   = $this->clampDayToMonth($hDay, $targetMonth, $hYear);
+                $targetMonth   = $this->mapMonthBetweenYears($hMonth, $sourceYear, $hYear);
+                $normalizedDay = $this->clampDayToMonth($hDay, $targetMonth, $hYear);
 
                 try {
                     $gregorianDate = $this->hebrewToGregorian($normalizedDay, $targetMonth, $hYear);
-                } catch (\Throwable $e) {
+                } catch (\Throwable) {
                     continue;
                 }
 
@@ -154,7 +176,6 @@ class HebrewDateService
                             'year'       => $hYear,
                             'month_name' => $this->getMonthName($targetMonth, $this->isLeapYear($hYear)),
                         ],
-                        'type'           => $type,
                     ]);
                     break;
                 }
@@ -164,33 +185,25 @@ class HebrewDateService
         return $results->sortBy(fn($r) => $r['gregorian_date']->timestamp)->values();
     }
 
-    private function resolveHebrewDate(FamilyMember $member, string $type): ?array
+    private function resolveHebrewBirthDate(FamilyMember $member): ?array
     {
-        $overrideField = $type === 'death' ? 'hebrew_dod_override' : 'hebrew_dob_override';
-        $hebrewField   = $type === 'death' ? 'hebrew_date_of_death' : 'hebrew_date_of_birth';
-        $gregField     = $type === 'death' ? 'date_of_death' : 'date_of_birth';
-
-        // First priority: manually overridden Hebrew date
-        if ($member->$overrideField && $member->$hebrewField) {
-            $parsed = $this->parseStoredHebrewDate($member->$hebrewField);
+        if ($member->hebrew_dob_override && $member->hebrew_date_of_birth) {
+            $parsed = $this->parseStoredHebrewDate($member->hebrew_date_of_birth);
             if ($parsed) {
-                return array_merge($parsed, [null]); // Day, month, null for sourceYear
+                return array_merge($parsed, [null]);
             }
         }
 
-        // Second priority: auto-generated or manually entered Hebrew date (without override flag)
-        // These were generated from a Gregorian date so we use them going forward
-        if ($member->$hebrewField) {
-            $parsed = $this->parseStoredHebrewDate($member->$hebrewField);
+        if ($member->hebrew_date_of_birth) {
+            $parsed = $this->parseStoredHebrewDate($member->hebrew_date_of_birth);
             if ($parsed) {
-                return array_merge($parsed, [null]); // Day, month, null for sourceYear
+                return array_merge($parsed, [null]);
             }
         }
 
-        // Last priority: only if no Hebrew date exists, convert from Gregorian
-        if ($member->$gregField) {
-            $h = $this->gregorianToHebrew($member->$gregField);
-            return [$h['day'], $h['month'], $h['year']]; // Day, month, sourceYear
+        if ($member->date_of_birth) {
+            $h = $this->gregorianToHebrew($member->date_of_birth);
+            return [$h['day'], $h['month'], $h['year']];
         }
 
         return null;

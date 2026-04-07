@@ -104,7 +104,7 @@ class EmailReminderController extends Controller
         $family     = Family::findOrFail($request->family_id);
         $adminEmail = auth()->user()->email;
 
-        $token   = PaymentToken::generateFor($family);
+        $token   = PaymentToken::getOrCreateFor($family);
         $subject = '[TEST] ' . $this->emailService->buildBalanceReminderSubject($family);
         $body    = $this->emailService->buildBalanceReminderHtml($family, $token, $request->intro_text ?: null);
 
@@ -208,8 +208,8 @@ class EmailReminderController extends Controller
         ]);
 
         $family = Family::findOrFail($request->family_id);
-        // Generate a real token so the payment link in the preview is actually clickable
-        $token  = PaymentToken::generateFor($family);
+        // Reuse existing valid token so previewing never invalidates a live payment link
+        $token  = PaymentToken::getOrCreateFor($family);
 
         $html = $this->emailService->buildBalanceReminderHtml($family, $token, $request->intro_text ?: null);
         return response()->json(['html' => $html]);

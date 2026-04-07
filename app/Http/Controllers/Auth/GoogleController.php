@@ -11,14 +11,29 @@ class GoogleController extends Controller
 {
     public function redirect()
     {
-        return Socialite::driver('google')->redirect();
+        // Pass tenant_id in state so callback can scope the user lookup
+        $tenantId = app()->bound('tenant') ? app('tenant')->id : null;
+        $state = base64_encode(json_encode(['tenant_id' => $tenantId]));
+
+        return Socialite::driver('google')
+            ->with(['state' => $state])
+            ->redirect();
     }
 
     public function callback()
     {
-        $googleUser = Socialite::driver('google')->user();
+        $googleUser = Socialite::driver('google')->stateless()->user();
 
-        $user = User::where('email', $googleUser->getEmail())->first();
+        // Decode state to recover tenant_id
+        $state    = request()->input('state', '');
+        $stateData = $state ? json_decode(base64_decode($state), true) : [];
+        $tenantId  = $stateData['tenant_id'] ?? null;
+
+        $query = User::where('email', $googleUser->getEmail());
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
+        $user = $query->first();
 
         if (! $user) {
             return redirect('/login')->withErrors([
@@ -28,8 +43,9 @@ class GoogleController extends Controller
 
         // Keep google_id and avatar up to date
         $user->update([
-            'google_id' => $googleUser->getId(),
-            'avatar'    => $googleUser->getAvatar(),
+            'google_id'     => $googleUser->getId(),
+            'avatar'        => $googleUser->getAvatar(),
+            'last_login_at' => now(),
         ]);
 
         Auth::login($user, true);

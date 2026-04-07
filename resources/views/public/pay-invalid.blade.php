@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Link Expired — Young Israel of Memphis</title>
+<title>Link Expired — {{ $tenant->name ?? config('app.name') }}</title>
 <style>
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0ede8;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem;color:#1a2d5a}
 .logo{font-family:Georgia,serif;font-size:1.4rem;font-weight:700;color:#1a2d5a;margin-bottom:0.25rem}
@@ -15,12 +15,12 @@ a{color:#c9a84c}
 </style>
 </head>
 <body>
-<div class="logo">Young Israel of Memphis</div>
-<div class="sub">Torah &middot; Tefillah &middot; Tradition</div>
+<div class="logo">{{ $tenant->name ?? config('app.name') }}</div>
+<div class="sub">{{ $tenant->tagline ?? '' }}</div>
 <div class="card">
     <h2>This link has expired</h2>
-    <p>Payment links are valid for 30 days. Please contact the YIOM office to receive a new payment link.<br><br>
-    <a href="mailto:exec@yiom.org">exec@yiom.org</a> &bull; (901) 761-1291</p>
+    <p>Payment links are valid for 30 days. Please contact the office to receive a new payment link.<br><br>
+    @if($tenant->org_email ?? null)<a href="mailto:{{ $tenant->org_email }}">{{ $tenant->org_email }}</a>@if($tenant->org_phone ?? null) &bull; {{ $tenant->org_phone }}@endif@endif</p>
 </div>
 </body>
 </html>

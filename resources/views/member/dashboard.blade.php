@@ -37,17 +37,20 @@
 </div>
 
 <div class="grid-2">
-    {{-- Upcoming yahrzeits --}}
+    {{-- Upcoming yahrtzeits --}}
     <div class="card">
-        <div class="card-title">⭐ Upcoming Yahrzeits <span style="font-size:0.75rem;font-weight:400;color:var(--text-muted)">(next 60 days)</span></div>
-        @if($yahrzeits->isEmpty())
-            <p class="text-muted text-sm">No yahrzeits in the next 60 days.</p>
+        <div class="card-title">⭐ Upcoming Yahrtzeits <span style="font-size:0.75rem;font-weight:400;color:var(--text-muted)">(next 60 days)</span></div>
+        @if($yahrtzeits->isEmpty())
+            <p class="text-muted text-sm">No yahrtzeits in the next 60 days.</p>
         @else
-            @foreach($yahrzeits as $y)
+            @foreach($yahrtzeits as $y)
             <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid var(--border-dim)">
                 <div>
-                    <div style="font-weight:500">{{ $y['member']->full_name }}</div>
-                    <div class="text-sm text-muted" style="font-family:serif;direction:rtl">{{ $y['hebrew_date']['day'] }} {{ $y['hebrew_date']['month_name'] }}</div>
+                    <div style="font-weight:500">{{ $y['yahrtzeit']->full_name }}</div>
+                    @if($y['yahrtzeit']->relationship_label)
+                        <div class="text-sm text-muted">{{ $y['yahrtzeit']->relationship_label }}</div>
+                    @endif
+                    <div class="text-sm text-muted">{{ $y['hebrew_date']['day'] }} {{ $y['hebrew_date']['month_name'] }}</div>
                 </div>
                 <div style="text-align:right">
                     <div class="badge badge-gold">{{ $y['gregorian_date']->format('M j') }}</div>
@@ -65,14 +68,16 @@
             <p class="text-muted text-sm">No birthdays in the next 60 days.</p>
         @else
             @foreach($birthdays as $b)
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid var(--border-dim)">
-                <div>
-                    <div style="font-weight:500">{{ $b['member']->full_name }}</div>
-                    <div class="text-sm text-muted">{{ $b['hebrew_date']['day'] }} {{ $b['hebrew_date']['month_name'] }}</div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:0.75rem 0;border-bottom:1px solid var(--border-dim)">
+                <div style="flex:1">
+                    <div style="font-weight:500;margin-bottom:0.25rem">{{ $b['member']->full_name }}</div>
+                    <div class="text-sm text-muted">Hebrew birthday: {{ $b['hebrew_date']['day'] }} {{ $b['hebrew_date']['month_name'] }}</div>
+                    <div class="text-sm text-muted">observed on {{ $b['gregorian_date']->format('M j, Y') }}</div>
                 </div>
-                <div style="text-align:right">
-                    <div class="badge badge-blue">{{ $b['gregorian_date']->format('M j') }}</div>
-                    <div class="text-sm text-muted" style="margin-top:0.2rem">{{ $b['gregorian_date']->diffForHumans() }}</div>
+                <div style="text-align:right;margin-left:1rem">
+                    <!-- <div class="text-sm" style="margin-bottom:0.25rem">English Birthday</div> -->
+                    <div class="badge badge-blue" style="display:inline-block">{{ $b['actual_gregorian_date']->format('M j') }}</div>
+                    <!-- <div class="text-sm text-muted" style="margin-top:0.3rem">{{ $b['actual_gregorian_date']->diffForHumans() }}</div> -->
                 </div>
             </div>
             @endforeach
@@ -136,8 +141,8 @@
 {{-- No family linked --}}
 <div class="card" style="text-align:center;padding:3rem">
     <div style="font-size:2.5rem;margin-bottom:1rem">🕍</div>
-    <h2 style="font-family:'Playfair Display',serif;color:var(--gold);margin-bottom:0.5rem">Welcome to the YIOM Member Portal</h2>
-    <p class="text-muted" style="max-width:400px;margin:0 auto">Your account has not yet been linked to a family record. Please contact the synagogue office at <a href="mailto:exec@yiom.org" style="color:var(--gold)">exec@yiom.org</a> to complete your setup.</p>
+    <h2 style="font-family:'Playfair Display',serif;color:var(--gold);margin-bottom:0.5rem">Welcome to the {{ $tenant->name ?? config('app.name') }} Member Portal</h2>
+    <p class="text-muted" style="max-width:400px;margin:0 auto">Your account has not yet been linked to a family record. Please contact the synagogue office at <a href="mailto:{{ $tenant->org_email ?? '' }}" style="color:var(--gold)">{{ $tenant->org_email ?? '' }}</a> to complete your setup.</p>
 </div>
 @endif
 @endsection

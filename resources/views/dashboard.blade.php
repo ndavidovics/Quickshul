@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard &mdash; Young Israel of Memphis Member Portal</title>
+    <title>Dashboard &mdash; {{ $tenant->name ?? config('app.name') }} Member Portal</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192.png">
@@ -41,7 +41,7 @@
 </head>
 <body>
     <header>
-        <div class="header-brand">Young Israel of Memphis &mdash; <span>Member Portal</span></div>
+        <div class="header-brand">{{ $tenant->name ?? config('app.name') }} &mdash; <span>Member Portal</span></div>
         <div class="header-user">
             <p>{{ auth()->user()->name }}</p>
             <form method="POST" action="{{ route('logout') }}">

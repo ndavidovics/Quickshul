@@ -50,6 +50,7 @@ class PublicPaymentController extends Controller
         $validated = $request->validate([
             'amounts'   => 'required|array|min:1',
             'amounts.*' => 'numeric|min:0.01|max:99999',
+            'cover_fee' => 'nullable|boolean',
         ]);
 
         // Validate each pledge_id belongs to this family
@@ -80,12 +81,16 @@ class PublicPaymentController extends Controller
             return response()->json(['error' => 'Please enter a payment amount.'], 422);
         }
 
+        $coverFee  = (bool)($validated['cover_fee'] ?? false);
+        $feeAmount = $coverFee ? round($total * 0.02, 2) : 0.0;
+        $grandTotal = round($total + $feeAmount, 2);
+
         $description = $pledges->count() > 1
             ? 'YIOM Pledge Payment'
             : ($pledges->first()->description ?: 'YIOM Pledge Payment');
 
         try {
-            $orderId = $this->paypal->createOrderForSdk($total, $family->id, $description);
+            $orderId = $this->paypal->createOrderForSdk($grandTotal, $family->id, $description);
 
             // Create one pending payment; store breakdown as JSON in notes
             Payment::create([
@@ -96,7 +101,11 @@ class PublicPaymentController extends Controller
                 'paypal_order_id' => $orderId,
                 'description'     => $description,
                 'status'          => 'pending',
-                'notes'           => json_encode(['pledge_breakdown' => $breakdown]),
+                'notes'           => json_encode([
+                    'pledge_breakdown' => $breakdown,
+                    'cover_fee'        => $coverFee,
+                    'fee_amount'       => $feeAmount,
+                ]),
             ]);
 
             return response()->json(['id' => $orderId]);
@@ -139,9 +148,24 @@ class PublicPaymentController extends Controller
             ]);
 
             // Apply breakdown to pledges
-            $notes     = json_decode($payment->notes, true) ?? [];
-            $breakdown = $notes['pledge_breakdown'] ?? [];
-            $paypalFee = $capture['fee'] ?? 0;
+            $notes      = json_decode($payment->notes, true) ?? [];
+            $breakdown  = $notes['pledge_breakdown'] ?? [];
+            $feeAmount  = (float)($notes['fee_amount'] ?? 0);
+            $paypalFee  = $capture['fee'] ?? 0;
+
+            // Create fee payment if user opted in
+            $feePayment = null;
+            if ($feeAmount > 0) {
+                $feePayment = Payment::create([
+                    'family_id'   => $family->id,
+                    'amount'      => $feeAmount,
+                    'payment_date'=> today(),
+                    'method'      => 'paypal',
+                    'description' => 'Cover processing fees',
+                    'status'      => 'completed',
+                    'notes'       => 'Processing fee opted in by member',
+                ]);
+            }
 
             foreach ($breakdown as $pledgeId => $amount) {
                 $pledge = Pledge::where('id', $pledgeId)->where('family_id', $family->id)->first();
@@ -159,21 +183,35 @@ class PublicPaymentController extends Controller
             $this->audit->log('payment.public.completed', $payment, [], [], "Public portal payment of \${$payment->amount} from {$family->name}");
 
             $memo = 'Portal pledge payment via public link';
-            dispatch(function () use ($payment, $breakdown, $paypalFee, $memo, $family) {
+            dispatch(function () use ($payment, $feePayment, $breakdown, $paypalFee, $memo) {
                 $qb = app(QuickBooksService::class);
+
+                // Build pledge→amount pairs for a single QB Payment with per-invoice line amounts.
+                $pledgeAmounts = [];
                 foreach ($breakdown as $pledgeId => $amount) {
                     $pledge = Pledge::find($pledgeId);
-                    if (! $pledge) continue;
-                    try {
-                        $qb->createPledgePayment($payment, $pledge, $memo);
-                    } catch (\Throwable $e) {
-                        Log::error("QB pledge payment failed (public) payment #{$payment->id}: " . $e->getMessage());
+                    if ($pledge) {
+                        $pledgeAmounts[] = ['pledge' => $pledge, 'amount' => (float)$amount];
                     }
+                }
+
+                try {
+                    $qb->createMultiPledgePayment($payment, $pledgeAmounts, $memo);
+                } catch (\Throwable $e) {
+                    Log::error("QB multi-pledge payment failed (public) payment #{$payment->id}: " . $e->getMessage());
                 }
                 try {
                     $qb->createFeeExpense($payment, (float)$paypalFee, $memo);
                 } catch (\Throwable $e) {
                     Log::error("QB fee expense failed (public) payment #{$payment->id}: " . $e->getMessage());
+                }
+                if ($feePayment) {
+                    try {
+                        $qb->createSalesReceipt($feePayment, '62');
+                        Log::info("QB SalesReceipt created for processing fee payment #{$feePayment->id}");
+                    } catch (\Throwable $e) {
+                        Log::error("QB SalesReceipt failed for fee payment #{$feePayment->id}: " . $e->getMessage());
+                    }
                 }
             })->afterResponse();
 

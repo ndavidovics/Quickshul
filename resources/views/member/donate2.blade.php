@@ -33,7 +33,7 @@
     {{-- ── Donation Form ────────────────────────────────────────────────────── --}}
     <div id="donation-form">
         <h1 class="page-title">{{ $isPledgePayment ? 'Pay Pledge' : 'Make a Donation' }}</h1>
-        <p class="page-subtitle">Support Young Israel of Memphis</p>
+        <p class="page-subtitle">Support {{ $tenant->name ?? config('app.name') }}</p>
 
         <div class="card">
 
@@ -67,6 +67,15 @@
 
             {{-- Hidden pledge ID --}}
             <input type="hidden" id="pledge-id" value="{{ $prefillPledgeId }}">
+
+            {{-- Processing fee opt-in --}}
+            <div class="form-group" style="margin-top:0.25rem">
+                <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;font-size:0.875rem;color:var(--text-muted);font-weight:400">
+                    <input type="checkbox" id="cover-fee-checkbox" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer;flex-shrink:0">
+                    Cover 2% processing fee?
+                </label>
+                <p id="fee-note" style="display:none;margin:0.3rem 0 0 1.6rem;font-size:0.8rem;color:var(--text-muted)"></p>
+            </div>
 
             <div style="border-top:1px solid var(--border-dim);margin:0.5rem 0 1.25rem"></div>
 
@@ -122,6 +131,23 @@
     function getAmount()      { return parseFloat(document.getElementById('amount').value) || 0; }
     function getDescription() { return document.getElementById('description').value.trim() || 'General Donation'; }
     function getPledgeId()    { var el = document.getElementById('pledge-id'); return el ? el.value.trim() : ''; }
+    function coveringFee()    { return document.getElementById('cover-fee-checkbox').checked; }
+    function getFeeAmount()   { return coveringFee() ? Math.round(getAmount() * 0.02 * 100) / 100 : 0; }
+    function getGrandTotal()  { return Math.round((getAmount() + getFeeAmount()) * 100) / 100; }
+
+    function updateFeeNote() {
+        var fee = getFeeAmount();
+        var el  = document.getElementById('fee-note');
+        if (fee > 0) {
+            el.textContent = 'Total charged: $' + getGrandTotal().toFixed(2) + ' (includes $' + fee.toFixed(2) + ' fee)';
+            el.style.display = 'block';
+        } else {
+            el.style.display = 'none';
+        }
+    }
+
+    document.getElementById('cover-fee-checkbox').addEventListener('change', updateFeeNote);
+    document.getElementById('amount').addEventListener('input', function() { if (coveringFee()) updateFeeNote(); });
 
     function showError(msg) {
         var el = document.getElementById('payment-error');
@@ -150,7 +176,7 @@
     // ── API calls ─────────────────────────────────────────────────────────────
 
     function createOrder() {
-        var payload = { amount: getAmount(), description: getDescription() };
+        var payload = { amount: getAmount(), description: getDescription(), cover_fee: coveringFee() };
         var pledgeId = getPledgeId();
         if (pledgeId) payload.pledge_id = pledgeId;
         if (donorName)  payload.donor_name  = donorName;
@@ -235,7 +261,7 @@
                         hideError();
                         if (!validateAmount()) return;
 
-                        var amount = getAmount();
+                        var grandTotal = getGrandTotal();
 
                         createOrder().then(function (orderId) {
                             return gpClient.loadPaymentData({
@@ -247,8 +273,8 @@
                                     countryCode:      'US',
                                     currencyCode:     'USD',
                                     totalPriceStatus: 'FINAL',
-                                    totalPrice:       amount.toFixed(2),
-                                    totalPriceLabel:  'Donation to Young Israel of Memphis',
+                                    totalPrice:       grandTotal.toFixed(2),
+                                    totalPriceLabel:  'Donation to {{ $tenant->name ?? config("app.name") }}',
                                 },
                             }).then(function (paymentData) {
                                 return googlepay.confirmOrder({
@@ -290,21 +316,21 @@
                 hideError();
                 if (!validateAmount()) return;
 
-                var amount   = getAmount();
-                var applepay = window.paypalApplepay.Applepay();
+                var grandTotal = getGrandTotal();
+                var applepay   = window.paypalApplepay.Applepay();
 
                 var session = new ApplePaySession(4, {
                     countryCode:          'US',
                     currencyCode:         'USD',
                     merchantCapabilities: config.merchantCapabilities,
                     supportedNetworks:    config.supportedNetworks,
-                    total: { label: 'Young Israel of Memphis', type: 'final', amount: amount.toFixed(2) },
+                    total: { label: '{{ $tenant->name ?? config("app.name") }}', type: 'final', amount: grandTotal.toFixed(2) },
                 });
 
                 session.onvalidatemerchant = function (event) {
                     applepay.validateMerchant({
                         validationUrl: event.validationURL,
-                        displayName:   'Young Israel of Memphis',
+                        displayName:   '{{ $tenant->name ?? config("app.name") }}',
                     }).then(function (result) {
                         session.completeMerchantValidation(result.merchantSession);
                     }).catch(function (err) {
@@ -314,7 +340,7 @@
                 };
 
                 session.onpaymentauthorized = function (event) {
-                    var apPayload = { amount: amount, description: getDescription() };
+                    var apPayload = { amount: getAmount(), description: getDescription(), cover_fee: coveringFee() };
                     var pledgeId  = getPledgeId();
                     if (pledgeId) apPayload.pledge_id = pledgeId;
 

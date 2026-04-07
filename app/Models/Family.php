@@ -2,18 +2,21 @@
 
 namespace App\Models;
 
-use App\Enums\MembershipType;
+use App\Traits\HasTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Family extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, HasTenant;
 
     protected $fillable = [
+        'tenant_id',
         'name',
         'address',
         'city',
@@ -34,7 +37,6 @@ class Family extends Model
     protected function casts(): array
     {
         return [
-            'membership_type'     => MembershipType::class,
             'member_since'        => 'date',
             'total_pledged'       => 'decimal:2',
             'total_paid'          => 'decimal:2',
@@ -44,6 +46,12 @@ class Family extends Model
     }
 
     // Relationships
+
+    public function membershipType(): BelongsTo
+    {
+        return $this->belongsTo(MembershipType::class, 'membership_type', 'slug')
+                    ->where('tenant_id', $this->tenant_id ?? null);
+    }
 
     public function emails(): HasMany
     {
@@ -80,6 +88,14 @@ class Family extends Model
         return $this->hasMany(EmailSend::class);
     }
 
+    public function yahrtzeits(): BelongsToMany
+    {
+        return $this->belongsToMany(Yahrtzeit::class, 'family_yahrtzeit')
+                    ->withTimestamps()
+                    ->orderBy('hebrew_month')
+                    ->orderBy('hebrew_day');
+    }
+
     // Scopes
 
     public function scopeSearch($query, string $term)
@@ -97,9 +113,9 @@ class Family extends Model
         return $query->where('outstanding_balance', '>', 0);
     }
 
-    public function scopeByMembershipType($query, MembershipType $type)
+    public function scopeByMembershipType($query, string $slug)
     {
-        return $query->where('membership_type', $type->value);
+        return $query->where('membership_type', $slug);
     }
 
     // Helpers

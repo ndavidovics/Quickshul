@@ -1,0 +1,1403 @@
+[
+  {
+    "date": {
+      "day": 4,
+      "month": 7,
+      "year": 2021,
+      "dayOfWeek": 7
+    },
+    "observedOn": {
+      "day": 5,
+      "month": 7,
+      "year": 2021,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Independence Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 6,
+      "month": 9,
+      "year": 2021,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Labor Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 11,
+      "month": 11,
+      "year": 2021,
+      "dayOfWeek": 4
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Veterans Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 25,
+      "month": 11,
+      "year": 2021,
+      "dayOfWeek": 4
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Thanksgiving"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 26,
+      "month": 11,
+      "year": 2021,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "The Friday after Thanksgiving Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 25,
+      "month": 12,
+      "year": 2021,
+      "dayOfWeek": 6
+    },
+    "observedOn": {
+      "day": 24,
+      "month": 12,
+      "year": 2021,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Christmas Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 1,
+      "month": 1,
+      "year": 2022,
+      "dayOfWeek": 6
+    },
+    "observedOn": {
+      "day": 31,
+      "month": 12,
+      "year": 2021,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "New Year's Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 17,
+      "month": 1,
+      "year": 2022,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Martin Luther King, Jr. Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 21,
+      "month": 2,
+      "year": 2022,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Presidents Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 15,
+      "month": 4,
+      "year": 2022,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Good Friday"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 30,
+      "month": 5,
+      "year": 2022,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Memorial Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 4,
+      "month": 7,
+      "year": 2022,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Independence Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 5,
+      "month": 9,
+      "year": 2022,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Labor Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 11,
+      "month": 11,
+      "year": 2022,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Veterans Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 24,
+      "month": 11,
+      "year": 2022,
+      "dayOfWeek": 4
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Thanksgiving"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 25,
+      "month": 11,
+      "year": 2022,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "The Friday after Thanksgiving Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 25,
+      "month": 12,
+      "year": 2022,
+      "dayOfWeek": 7
+    },
+    "observedOn": {
+      "day": 26,
+      "month": 12,
+      "year": 2022,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Christmas Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 1,
+      "month": 1,
+      "year": 2023,
+      "dayOfWeek": 7
+    },
+    "observedOn": {
+      "day": 2,
+      "month": 1,
+      "year": 2023,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "New Year's Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 16,
+      "month": 1,
+      "year": 2023,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Martin Luther King, Jr. Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 20,
+      "month": 2,
+      "year": 2023,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Presidents Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 7,
+      "month": 4,
+      "year": 2023,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Good Friday"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 29,
+      "month": 5,
+      "year": 2023,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Memorial Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 4,
+      "month": 7,
+      "year": 2023,
+      "dayOfWeek": 2
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Independence Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 4,
+      "month": 9,
+      "year": 2023,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Labor Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 11,
+      "month": 11,
+      "year": 2023,
+      "dayOfWeek": 6
+    },
+    "observedOn": {
+      "day": 10,
+      "month": 11,
+      "year": 2023,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Veterans Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 23,
+      "month": 11,
+      "year": 2023,
+      "dayOfWeek": 4
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Thanksgiving"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 24,
+      "month": 11,
+      "year": 2023,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "The Friday after Thanksgiving Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 25,
+      "month": 12,
+      "year": 2023,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Christmas Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 1,
+      "month": 1,
+      "year": 2024,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "New Year's Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 15,
+      "month": 1,
+      "year": 2024,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Martin Luther King, Jr. Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 19,
+      "month": 2,
+      "year": 2024,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Presidents Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 29,
+      "month": 3,
+      "year": 2024,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Good Friday"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 27,
+      "month": 5,
+      "year": 2024,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Memorial Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 4,
+      "month": 7,
+      "year": 2024,
+      "dayOfWeek": 4
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Independence Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 2,
+      "month": 9,
+      "year": 2024,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Labor Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 11,
+      "month": 11,
+      "year": 2024,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Veterans Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 28,
+      "month": 11,
+      "year": 2024,
+      "dayOfWeek": 4
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Thanksgiving"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 29,
+      "month": 11,
+      "year": 2024,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "The Friday after Thanksgiving Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 25,
+      "month": 12,
+      "year": 2024,
+      "dayOfWeek": 3
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Christmas Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 1,
+      "month": 1,
+      "year": 2025,
+      "dayOfWeek": 3
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "New Year's Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 20,
+      "month": 1,
+      "year": 2025,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Martin Luther King, Jr. Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 17,
+      "month": 2,
+      "year": 2025,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Presidents Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 18,
+      "month": 4,
+      "year": 2025,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Good Friday"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 26,
+      "month": 5,
+      "year": 2025,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Memorial Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 4,
+      "month": 7,
+      "year": 2025,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Independence Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 1,
+      "month": 9,
+      "year": 2025,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Labor Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 11,
+      "month": 11,
+      "year": 2025,
+      "dayOfWeek": 2
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Veterans Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 27,
+      "month": 11,
+      "year": 2025,
+      "dayOfWeek": 4
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Thanksgiving"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 28,
+      "month": 11,
+      "year": 2025,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "The Friday after Thanksgiving Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 25,
+      "month": 12,
+      "year": 2025,
+      "dayOfWeek": 4
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Christmas Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 1,
+      "month": 1,
+      "year": 2026,
+      "dayOfWeek": 4
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "New Year's Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 19,
+      "month": 1,
+      "year": 2026,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Martin Luther King, Jr. Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 16,
+      "month": 2,
+      "year": 2026,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Presidents Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 3,
+      "month": 4,
+      "year": 2026,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Good Friday"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 25,
+      "month": 5,
+      "year": 2026,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Memorial Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 4,
+      "month": 7,
+      "year": 2026,
+      "dayOfWeek": 6
+    },
+    "observedOn": {
+      "day": 3,
+      "month": 7,
+      "year": 2026,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Independence Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 7,
+      "month": 9,
+      "year": 2026,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Labor Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 11,
+      "month": 11,
+      "year": 2026,
+      "dayOfWeek": 3
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Veterans Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 26,
+      "month": 11,
+      "year": 2026,
+      "dayOfWeek": 4
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Thanksgiving"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 27,
+      "month": 11,
+      "year": 2026,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "The Friday after Thanksgiving Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 25,
+      "month": 12,
+      "year": 2026,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Christmas Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 1,
+      "month": 1,
+      "year": 2027,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "New Year's Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 18,
+      "month": 1,
+      "year": 2027,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Martin Luther King, Jr. Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 15,
+      "month": 2,
+      "year": 2027,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Presidents Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 26,
+      "month": 3,
+      "year": 2027,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Good Friday"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 31,
+      "month": 5,
+      "year": 2027,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Memorial Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 4,
+      "month": 7,
+      "year": 2027,
+      "dayOfWeek": 7
+    },
+    "observedOn": {
+      "day": 5,
+      "month": 7,
+      "year": 2027,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Independence Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 6,
+      "month": 9,
+      "year": 2027,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Labor Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 11,
+      "month": 11,
+      "year": 2027,
+      "dayOfWeek": 4
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Veterans Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 25,
+      "month": 11,
+      "year": 2027,
+      "dayOfWeek": 4
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Thanksgiving"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 26,
+      "month": 11,
+      "year": 2027,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "The Friday after Thanksgiving Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 25,
+      "month": 12,
+      "year": 2027,
+      "dayOfWeek": 6
+    },
+    "observedOn": {
+      "day": 24,
+      "month": 12,
+      "year": 2027,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Christmas Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 1,
+      "month": 1,
+      "year": 2028,
+      "dayOfWeek": 6
+    },
+    "observedOn": {
+      "day": 31,
+      "month": 12,
+      "year": 2027,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "New Year's Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 17,
+      "month": 1,
+      "year": 2028,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Martin Luther King, Jr. Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 21,
+      "month": 2,
+      "year": 2028,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Presidents Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 14,
+      "month": 4,
+      "year": 2028,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Good Friday"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 29,
+      "month": 5,
+      "year": 2028,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Memorial Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 4,
+      "month": 7,
+      "year": 2028,
+      "dayOfWeek": 2
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Independence Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 4,
+      "month": 9,
+      "year": 2028,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Labor Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 11,
+      "month": 11,
+      "year": 2028,
+      "dayOfWeek": 6
+    },
+    "observedOn": {
+      "day": 10,
+      "month": 11,
+      "year": 2028,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Veterans Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 23,
+      "month": 11,
+      "year": 2028,
+      "dayOfWeek": 4
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Thanksgiving"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 24,
+      "month": 11,
+      "year": 2028,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "The Friday after Thanksgiving Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 25,
+      "month": 12,
+      "year": 2028,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Christmas Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 1,
+      "month": 1,
+      "year": 2029,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "New Year's Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 15,
+      "month": 1,
+      "year": 2029,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Martin Luther King, Jr. Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 19,
+      "month": 2,
+      "year": 2029,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Presidents Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 30,
+      "month": 3,
+      "year": 2029,
+      "dayOfWeek": 5
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Good Friday"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 28,
+      "month": 5,
+      "year": 2029,
+      "dayOfWeek": 1
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Memorial Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  },
+  {
+    "date": {
+      "day": 4,
+      "month": 7,
+      "year": 2029,
+      "dayOfWeek": 3
+    },
+    "name": [
+      {
+        "lang": "en",
+        "text": "Independence Day"
+      }
+    ],
+    "holidayType": "public_holiday"
+  }
+]

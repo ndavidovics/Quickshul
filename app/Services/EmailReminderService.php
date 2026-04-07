@@ -43,7 +43,8 @@ class EmailReminderService
 
     public function defaultBalanceReminderIntro(Family $family): string
     {
-        return "We hope this message finds you and your family well. As a valued member of the Young Israel of Memphis, "
+        $orgName = app()->bound('tenant') ? app('tenant')->name : config('app.name');
+        return "We hope this message finds you and your family well. As a valued member of {$orgName}, "
             . "your support is the foundation upon which our community stands — enabling us to maintain a vibrant home "
             . "for Torah learning, meaningful Tefillah, and the beautiful traditions that bind us together.\n\n"
             . "We are writing to kindly bring your attention to the following outstanding pledges on your account. "
@@ -53,20 +54,20 @@ class EmailReminderService
     public function formatGreeting(Family $family): string
     {
         // Prefer actual member records (most accurate)
-        $parents = $family->members()->where('role', 'parent')->get();
-        if ($parents->isEmpty()) {
-            $parents = $family->members()->get();
-        }
+        // $parents = $family->members()->where('role', 'parent')->get();
+        // if ($parents->isEmpty()) {
+        //     $parents = $family->members()->get();
+        // }
 
-        if ($parents->isNotEmpty()) {
-            $lastName   = trim($parents->first()->last_name ?? '');
-            $firstNames = $parents->pluck('first_name')->map('trim')->filter()->values();
+        // if ($parents->isNotEmpty()) {
+        //     $lastName   = trim($parents->first()->last_name ?? '');
+        //     $firstNames = $parents->pluck('first_name')->map('trim')->filter()->values();
 
-            if ($firstNames->isNotEmpty()) {
-                $first = $firstNames->take(2)->implode(' & ');
-                return $lastName ? "{$first} {$lastName}" : $first;
-            }
-        }
+        //     if ($firstNames->isNotEmpty()) {
+        //         $first = $firstNames->take(2)->implode(' & ');
+        //         return $lastName ? "{$first} {$lastName}" : $first;
+        //     }
+        // }
 
         // Fall back to parsing the display name
         return $this->parseGreetingFromName($family->name);
@@ -164,14 +165,21 @@ class EmailReminderService
                     ->toArray();
             }
 
-            Mail::html($emailSend->body, function ($message) use ($emailSend, $ccEmails) {
-                $message->to($emailSend->recipient_email)
-                        ->subject($emailSend->subject)
-                        ->from(config('mail.from.address'), config('mail.from.name'));
-                if ($ccEmails) {
-                    $message->cc($ccEmails);
-                }
-            });
+            $tenant = app()->bound('tenant') ? app('tenant') : null;
+
+            if ($tenant && $tenant->isGmailConnected()) {
+                $gmailService = new \App\Services\GmailService($tenant);
+                $sent = $gmailService->send($emailSend->recipient_email, $emailSend->subject, $emailSend->body, $ccEmails);
+                if (!$sent) throw new \RuntimeException('Gmail send failed');
+            } else {
+                // Fallback to Laravel mail (for testing/non-Gmail tenants)
+                Mail::html($emailSend->body, function ($message) use ($emailSend, $ccEmails) {
+                    $message->to($emailSend->recipient_email)
+                            ->subject($emailSend->subject)
+                            ->from(config('mail.from.address'), config('mail.from.name'));
+                    if ($ccEmails) $message->cc($ccEmails);
+                });
+            }
 
             $emailSend->update([
                 'status'  => EmailSendStatus::Sent,
@@ -190,14 +198,29 @@ class EmailReminderService
         }
     }
 
+    public function buildPortalAnnouncementHtml(Family $family): string
+    {
+        $greeting = $this->formatGreeting($family);
+        return View::make('emails.portal_announcement', compact('greeting'))->render();
+    }
+
     public function sendDirect(string $toEmail, string $subject, string $htmlBody): bool
     {
         try {
-            Mail::html($htmlBody, function ($message) use ($toEmail, $subject) {
-                $message->to($toEmail)
-                        ->subject($subject)
-                        ->from(config('mail.from.address'), config('mail.from.name'));
-            });
+            $tenant = app()->bound('tenant') ? app('tenant') : null;
+
+            if ($tenant && $tenant->isGmailConnected()) {
+                $gmailService = new \App\Services\GmailService($tenant);
+                $sent = $gmailService->send($toEmail, $subject, $htmlBody);
+                if (!$sent) throw new \RuntimeException('Gmail send failed');
+            } else {
+                // Fallback to Laravel mail (for testing/non-Gmail tenants)
+                Mail::html($htmlBody, function ($message) use ($toEmail, $subject) {
+                    $message->to($toEmail)
+                            ->subject($subject)
+                            ->from(config('mail.from.address'), config('mail.from.name'));
+                });
+            }
             return true;
         } catch (\Throwable $e) {
             \Log::error('EmailReminderService::sendDirect failed: ' . $e->getMessage());

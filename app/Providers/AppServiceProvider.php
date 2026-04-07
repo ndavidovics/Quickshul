@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory;
 use Symfony\Component\Mailer\Transport\Dsn;
@@ -20,6 +21,12 @@ class AppServiceProvider extends ServiceProvider
             return (new BrevoTransportFactory)->create(
                 new Dsn('brevo+api', 'default', config('services.brevo.key'))
             );
+        });
+
+        View::composer('*', function ($view) {
+            if (app()->bound('tenant')) {
+                $view->with('tenant', app('tenant'));
+            }
         });
     }
 }

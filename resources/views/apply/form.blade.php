@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Membership Application &mdash; Young Israel of Memphis</title>
+    <title>Membership Application &mdash; {{ $tenant->name ?? config('app.name') }}</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -122,9 +122,9 @@
 
     <div class="brand-header">
         <div class="logo-container">
-            <img src="https://static.wixstatic.com/media/e7610d_01030d0ca83f445b8c033c146a1ee4fb~mv2.png" alt="Young Israel of Memphis">
+            <img src="{{ $tenant->logo_url ?? asset('img/quickshul-logo.svg') }}" alt="{{ $tenant->name ?? config('app.name') }}">
         </div>
-        <div class="brand-name">Young Israel of Memphis</div>
+        <div class="brand-name">{{ $tenant->name ?? config('app.name') }}</div>
         <div class="brand-subtitle">Membership Application</div>
         <div class="brand-tagline">We're glad you're joining our community. Please fill out the form below.</div>
     </div>
@@ -191,7 +191,7 @@
                 </div>
                 <div class="form-group">
                     <label for="city">City <span class="opt">(optional)</span></label>
-                    <input type="text" id="city" name="city" value="{{ old('city') }}" placeholder="Memphis">
+                    <input type="text" id="city" name="city" value="{{ old('city') }}" placeholder="{{ $tenant->city ?? 'City' }}">
                     @error('city')<div class="field-error">{{ $message }}</div>@enderror
                 </div>
                 <div class="form-group">

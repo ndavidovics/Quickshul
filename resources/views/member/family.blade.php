@@ -9,33 +9,7 @@
     <div class="card"><p class="text-muted">No family account linked. Please contact the office.</p></div>
 @else
 
-{{-- Upcoming events summary --}}
-@if($yahrzeits->count() || $birthdays->count())
-<div class="grid-2" style="margin-bottom:1.5rem">
-    @if($yahrzeits->count())
-    <div class="card">
-        <div class="card-title">⭐ Upcoming Yahrzeits</div>
-        @foreach($yahrzeits as $y)
-        <div style="display:flex;justify-content:space-between;padding:0.45rem 0;border-bottom:1px solid var(--border-dim)">
-            <span>{{ $y['member']->full_name }}</span>
-            <span class="badge badge-gold">{{ $y['gregorian_date']->format('M j') }}</span>
-        </div>
-        @endforeach
-    </div>
-    @endif
-    @if($birthdays->count())
-    <div class="card">
-        <div class="card-title">🎂 Upcoming Birthdays</div>
-        @foreach($birthdays as $b)
-        <div style="display:flex;justify-content:space-between;padding:0.45rem 0;border-bottom:1px solid var(--border-dim)">
-            <span>{{ $b['member']->full_name }}</span>
-            <span class="badge badge-blue">{{ $b['gregorian_date']->format('M j') }}</span>
-        </div>
-        @endforeach
-    </div>
-    @endif
-</div>
-@endif
+
 
 {{-- Contact Information --}}
 <div class="card" style="margin-bottom:1.5rem">
@@ -102,19 +76,13 @@
                 <th>Role</th>
                 <th>Birthday</th>
                 <th>Hebrew Birthday</th>
-                <th>Yahrzeit</th>
                 <th></th>
             </tr>
         </thead>
         <tbody>
             @foreach($membersWithDates as $m)
             <tr>
-                <td>
-                    <div style="font-weight:500">{{ $m['model']->full_name }}</div>
-                    @if($m['model']->isDeceased())
-                        <span class="badge badge-muted" style="margin-top:0.2rem">Deceased</span>
-                    @endif
-                </td>
+                <td style="font-weight:500">{{ $m['model']->full_name }}</td>
                 <td style="font-family:serif;font-size:1rem;direction:rtl">{{ $m['hebrew_name'] ?? '—' }}</td>
                 <td><span class="badge badge-muted">{{ ucfirst($m['role']) }}</span></td>
                 <td class="text-muted">{{ $m['model']->date_of_birth?->format('M j, Y') ?? '—' }}</td>
@@ -126,20 +94,13 @@
                     @endif
                 </td>
                 <td>
-                    @if($m['model']->isDeceased() && $m['hebrew_dod_computed'])
-                        <span style="font-size:0.85rem">{{ $m['hebrew_dod_computed']['formatted'] }}</span>
-                    @else
-                        <span class="text-muted">—</span>
-                    @endif
-                </td>
-                <td>
                     <button type="button" class="btn btn-outline btn-sm"
                             onclick="toggleSection('member-form-{{ $m['model']->id }}')">Edit</button>
                 </td>
             </tr>
             {{-- Inline edit form --}}
             <tr id="member-form-{{ $m['model']->id }}" style="display:none">
-                <td colspan="7" style="padding:1rem;background:var(--bg-card);border-top:1px solid var(--border-dim)">
+                <td colspan="6" style="padding:1rem;background:var(--bg-card);border-top:1px solid var(--border-dim)">
                     <form method="POST" action="{{ route('family.member.update', $m['model']->id) }}">
                         @csrf
                         @method('PUT')
@@ -189,21 +150,6 @@
                                 <input type="hidden" name="hebrew_dob_override"
                                        value="{{ $m['model']->hebrew_dob_override ? '1' : '0' }}">
                             </div>
-                            @if($m['model']->isDeceased())
-                            <div class="form-group" style="margin-bottom:0">
-                                <label class="form-label">Date of Death</label>
-                                <input type="date" name="date_of_death" class="form-control"
-                                       value="{{ old('date_of_death', $m['model']->date_of_death?->format('Y-m-d')) }}">
-                            </div>
-                            <div class="form-group" style="margin-bottom:0">
-                                <label class="form-label">Hebrew Yahrzeit Override</label>
-                                <input type="text" name="hebrew_date_of_death" class="form-control"
-                                       value="{{ old('hebrew_date_of_death', $m['model']->hebrew_date_of_death) }}"
-                                       placeholder="e.g. ד׳ ניסן תשנ״ח">
-                                <input type="hidden" name="hebrew_dod_override"
-                                       value="{{ $m['model']->hebrew_dod_override ? '1' : '0' }}">
-                            </div>
-                            @endif
                         </div>
                         <div style="display:flex;gap:0.75rem">
                             <button type="submit" class="btn btn-gold btn-sm">Save</button>
@@ -272,6 +218,50 @@
         </form>
     </div>
 </div>
+
+{{-- Yahrtzeits (read-only) --}}
+<div class="card" style="margin-top:1.5rem">
+    <div class="card-title">Yahrtzeits</div>
+    @if($family->yahrtzeits->isEmpty())
+        <p class="text-muted text-sm">No yahrtzeits on record. Contact the office to add one.</p>
+    @else
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Hebrew Name</th>
+                <th>Relationship</th>
+                <th>Date of Death</th>
+                <th>Annual Yahrzeit</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($family->yahrtzeits as $y)
+            @php
+                $months = [1=>'Tishrei',2=>'Cheshvan',3=>'Kislev',4=>'Tevet',5=>'Shevat',
+                           6=>'Adar I',7=>'Adar/Adar II',8=>'Nisan',9=>'Iyar',10=>'Sivan',
+                           11=>'Tammuz',12=>'Av',13=>'Elul'];
+            @endphp
+            <tr>
+                <td style="font-weight:500">{{ $y->full_name }}</td>
+                <td style="direction:rtl;font-family:serif">{{ $y->hebrew_name ?? '—' }}</td>
+                <td>{{ $y->relationship_label ?? '—' }}</td>
+                <td class="text-muted text-sm">{{ $y->date_of_death?->format('M j, Y') ?? '—' }}</td>
+                <td class="text-sm">
+                    {{ $y->hebrew_day }} {{ $months[$y->hebrew_month] ?? '' }}
+                    @if($y->hebrew_date_of_death)
+                        <div class="text-muted" style="font-size:0.75rem">{{ $y->hebrew_date_of_death }}</div>
+                    @endif
+                </td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+    <p class="text-muted text-sm" style="margin-top:0.75rem">To add or edit yahrtzeits, contact the office.</p>
+    @endif
+</div>
+
+
 
 <script>
 function toggleSection(id) {

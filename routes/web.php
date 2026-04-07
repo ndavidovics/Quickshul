@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\AccountSettingsController;
 use App\Http\Controllers\MemberApplicationController;
 use App\Http\Controllers\Admin\ApplicationController;
@@ -18,11 +19,49 @@ use App\Http\Controllers\Admin\MembersController;
 use App\Http\Controllers\Admin\QbController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\YahrtzeitController;
+use App\Http\Controllers\Admin\CalendarController;
 use App\Http\Controllers\Admin\FinancialsController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\SuperAdmin\TenantController as SuperAdminTenantController;
 use Illuminate\Support\Facades\Route;
 
+// --- Registration + root domain routes (no tenant middleware) ---
+Route::get('/register', [RegistrationController::class, 'showRegister'])->name('register');
+Route::post('/register', [RegistrationController::class, 'register'])->name('register.submit');
+Route::get('/register/check-slug', [RegistrationController::class, 'checkSlug'])->name('register.check-slug');
+Route::get('/register/google', [RegistrationController::class, 'redirectToGoogle'])->name('register.google');
+Route::get('/register/google/callback', [RegistrationController::class, 'googleCallback'])->name('register.google.callback');
+Route::middleware('auth')->group(function () {
+    Route::get('/register/step2', [RegistrationController::class, 'showGmail'])->name('register.step2');
+    Route::get('/register/gmail/connect', [RegistrationController::class, 'connectGmail'])->name('register.gmail.connect');
+    Route::get('/auth/gmail/callback', [RegistrationController::class, 'gmailCallback'])->name('register.gmail.callback');
+    Route::post('/register/gmail/skip', [RegistrationController::class, 'skipGmail'])->name('register.gmail.skip');
+    Route::get('/register/step3', [RegistrationController::class, 'showPaypal'])->name('register.step3');
+    Route::post('/register/paypal/connect', [RegistrationController::class, 'connectPaypal'])->name('register.paypal.connect');
+    Route::post('/register/paypal/skip', [RegistrationController::class, 'skipPaypal'])->name('register.paypal.skip');
+    Route::get('/register/step4', [RegistrationController::class, 'showDone'])->name('register.step4');
+});
+
+Route::middleware(['auth', 'super_admin'])->prefix('superadmin')->name('superadmin.')->group(function () {
+    Route::get('/', [SuperAdminTenantController::class, 'index'])->name('index');
+    Route::get('/tenants/{id}', [SuperAdminTenantController::class, 'show'])->name('tenants.show');
+    Route::post('/tenants/{id}/activate', [SuperAdminTenantController::class, 'activate'])->name('tenants.activate');
+    Route::post('/tenants/{id}/suspend', [SuperAdminTenantController::class, 'suspend'])->name('tenants.suspend');
+    Route::delete('/tenants/{id}', [SuperAdminTenantController::class, 'destroy'])->name('tenants.destroy');
+});
+
 // --- Public ---
-Route::get('/', fn() => redirect('/login'));
+Route::get('/', function () {
+    // On a tenant subdomain → go to their login (or dashboard if already logged in)
+    if (app()->bound('tenant')) {
+        return auth()->check()
+            ? redirect()->route('dashboard')
+            : redirect()->route('login');
+    }
+    return view('home');
+})->name('home');
+Route::get('/memorial-board', [App\Http\Controllers\MemorialController::class, 'index'])->name('memorial');
+Route::get('/memorial-board/slide/{n}', [App\Http\Controllers\MemorialController::class, 'slide'])->name('memorial.slide');
 Route::get('/login', [LoginController::class, 'show'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
@@ -166,4 +205,29 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Users
     Route::get('/users', [UserManagementController::class, 'index'])->name('users');
     Route::post('/users/{id}/toggle-admin', [UserManagementController::class, 'toggleAdmin'])->name('users.toggle');
+
+    // Settings
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
+    Route::post('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
+    Route::get('/settings/gmail/connect', [SettingsController::class, 'connectGmail'])->name('settings.gmail.connect');
+    Route::post('/settings/gmail/disconnect', [SettingsController::class, 'disconnectGmail'])->name('settings.gmail.disconnect');
+    Route::post('/settings/paypal', [SettingsController::class, 'updatePaypal'])->name('settings.paypal');
+    Route::post('/settings/qb/toggle', [SettingsController::class, 'toggleQb'])->name('settings.qb.toggle');
+
+    // Calendar
+    Route::get('/calendar/settings', [CalendarController::class, 'settings'])->name('calendar.settings');
+    Route::post('/calendar/settings', [CalendarController::class, 'saveSettings'])->name('calendar.settings.save');
+    Route::get('/calendar/minyanim', [CalendarController::class, 'minyanim'])->name('calendar.minyanim');
+    Route::post('/calendar/minyanim/reorder', [CalendarController::class, 'reorderMinyanim'])->name('calendar.minyanim.reorder');
+    Route::post('/calendar/minyanim', [CalendarController::class, 'storeMinyan'])->name('calendar.minyanim.store');
+    Route::put('/calendar/minyanim/{id}', [CalendarController::class, 'updateMinyan'])->name('calendar.minyanim.update');
+    Route::delete('/calendar/minyanim/{id}', [CalendarController::class, 'deleteMinyan'])->name('calendar.minyanim.delete');
+    Route::get('/calendar/minyanim/{id}/exceptions', [CalendarController::class, 'listExceptions'])->name('calendar.minyanim.exceptions');
+    Route::post('/calendar/minyanim/{id}/exceptions', [CalendarController::class, 'storeException'])->name('calendar.minyanim.exceptions.store');
+    Route::put('/calendar/minyanim/{id}/exceptions/{eid}', [CalendarController::class, 'updateException'])->name('calendar.minyanim.exceptions.update');
+    Route::delete('/calendar/minyanim/{id}/exceptions/{eid}', [CalendarController::class, 'deleteException'])->name('calendar.minyanim.exceptions.delete');
+    Route::post('/calendar/minyanim/{id}/time-rules', [CalendarController::class, 'saveTimeRules'])->name('calendar.minyanim.time-rules');
+    Route::get('/calendar/generate', [CalendarController::class, 'generate'])->name('calendar.generate');
+    Route::post('/calendar/preview', [CalendarController::class, 'preview'])->name('calendar.preview');
+    Route::post('/calendar/hebcal/refresh', [CalendarController::class, 'refreshHebcal'])->name('calendar.hebcal.refresh');
 });

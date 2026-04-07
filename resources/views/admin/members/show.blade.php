@@ -50,10 +50,28 @@
 {{-- Emails --}}
 <div class="card" style="margin-top:1.25rem">
     <div class="card-title">Login Emails</div>
+    @php $usersByEmail = $family->users->keyBy('email'); @endphp
     @foreach($family->emails as $e)
-    <div style="display:flex;align-items:center;gap:0.75rem;padding:0.4rem 0;border-bottom:1px solid var(--border-dim)">
-        <span>{{ $e->email }}</span>
-        @if($e->is_primary) <span class="badge badge-gold">Primary</span> @endif
+    @php $u = $usersByEmail[$e->email] ?? null; @endphp
+    <div style="padding:0.5rem 0;border-bottom:1px solid var(--border-dim)">
+        <div style="display:flex;align-items:center;gap:0.5rem">
+            @if($u?->avatar)
+                <img src="{{ $u->avatar }}" alt="" style="width:18px;height:18px;border-radius:50%;border:1px solid var(--border-dim)">
+            @endif
+            <span>{{ $e->email }}</span>
+            @if($e->is_primary) <span class="badge badge-gold">Primary</span> @endif
+        </div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem;padding-left:0.1rem">
+            @if($u)
+                @if($u->last_login_at)
+                    Last login: {{ $u->last_login_at->format('M j, Y g:i A') }} &middot; {{ $u->last_login_at->diffForHumans() }}
+                @else
+                    Never logged in
+                @endif
+            @else
+                No portal account
+            @endif
+        </div>
     </div>
     @endforeach
 </div>

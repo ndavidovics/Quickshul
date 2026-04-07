@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+
+  <!-- Navy rounded-square background -->
+  <rect width="512" height="512" rx="88" fill="#1a2d5a"/>
+
+  <!-- ══ LEFT POLE ══ -->
+  <rect x="102" y="136" width="28" height="240" rx="14" fill="#c9a84c"/>
+
+  <!-- ══ RIGHT POLE ══ -->
+  <rect x="382" y="136" width="28" height="240" rx="14" fill="#c9a84c"/>
+
+  <!-- ══ TOP-LEFT FINIAL ══ -->
+  <rect x="109" y="106" width="14" height="34" rx="5" fill="#c9a84c"/>
+  <ellipse cx="116" cy="98" rx="16" ry="13" fill="#c9a84c"/>
+  <path d="M108 86 Q116 64 124 86 Q120 80 116 78 Q112 80 108 86Z" fill="#c9a84c"/>
+  <circle cx="116" cy="62" r="9" fill="#c9a84c"/>
+  <path d="M110 56 Q116 44 122 56" fill="none" stroke="#1a2d5a" stroke-width="2"/>
+
+  <!-- ══ TOP-RIGHT FINIAL ══ -->
+  <rect x="389" y="106" width="14" height="34" rx="5" fill="#c9a84c"/>
+  <ellipse cx="396" cy="98" rx="16" ry="13" fill="#c9a84c"/>
+  <path d="M388 86 Q396 64 404 86 Q400 80 396 78 Q392 80 388 86Z" fill="#c9a84c"/>
+  <circle cx="396" cy="62" r="9" fill="#c9a84c"/>
+  <path d="M390 56 Q396 44 402 56" fill="none" stroke="#1a2d5a" stroke-width="2"/>
+
+  <!-- ══ BOTTOM-LEFT FINIAL ══ -->
+  <rect x="109" y="372" width="14" height="34" rx="5" fill="#c9a84c"/>
+  <ellipse cx="116" cy="414" rx="16" ry="13" fill="#c9a84c"/>
+  <path d="M108 426 Q116 448 124 426 Q120 432 116 434 Q112 432 108 426Z" fill="#c9a84c"/>
+  <circle cx="116" cy="450" r="9" fill="#c9a84c"/>
+  <path d="M110 456 Q116 468 122 456" fill="none" stroke="#1a2d5a" stroke-width="2"/>
+
+  <!-- ══ BOTTOM-RIGHT FINIAL ══ -->
+  <rect x="389" y="372" width="14" height="34" rx="5" fill="#c9a84c"/>
+  <ellipse cx="396" cy="414" rx="16" ry="13" fill="#c9a84c"/>
+  <path d="M388 426 Q396 448 404 426 Q400 432 396 434 Q392 432 388 426Z" fill="#c9a84c"/>
+  <circle cx="396" cy="450" r="9" fill="#c9a84c"/>
+  <path d="M390 456 Q396 468 402 456" fill="none" stroke="#1a2d5a" stroke-width="2"/>
+
+  <!-- ══ PARCHMENT — concave top/bottom ══ -->
+  <path d="
+    M 130 168
+    Q 256 144 382 168
+    L 382 344
+    Q 256 368 130 344
+    Z
+  " fill="#f5e8c8"/>
+
+  <!-- Parchment top rolled-edge shadow -->
+  <path d="M 130 168 Q 256 156 382 168 Q 256 180 130 168 Z"
+        fill="#d4b87a" opacity="0.45"/>
+
+  <!-- Parchment bottom rolled-edge shadow -->
+  <path d="M 130 344 Q 256 332 382 344 Q 256 356 130 344 Z"
+        fill="#d4b87a" opacity="0.45"/>
+
+  <!-- Parchment border -->
+  <path d="M 130 168 Q 256 144 382 168 L 382 344 Q 256 368 130 344 Z"
+        fill="none" stroke="#c9a84c" stroke-width="2.5"/>
+
+  <!-- Subtle ruled lines on parchment (like text lines on a Torah) -->
+  <line x1="164" y1="220" x2="348" y2="220" stroke="#c9a84c" stroke-width="1" opacity="0.2"/>
+  <line x1="164" y1="256" x2="348" y2="256" stroke="#c9a84c" stroke-width="1" opacity="0.2"/>
+  <line x1="164" y1="292" x2="348" y2="292" stroke="#c9a84c" stroke-width="1" opacity="0.2"/>
+
+</svg>

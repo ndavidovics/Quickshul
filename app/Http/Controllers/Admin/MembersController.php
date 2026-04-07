@@ -71,12 +71,12 @@ class MembersController extends Controller
 
     public function show(Request $request, int $id)
     {
-        $family = Family::with(['emails', 'members', 'users'])
+        $family = Family::with(['emails', 'members', 'users', 'yahrtzeits'])
             ->withTrashed()
             ->findOrFail($id);
 
-        $payments = $family->payments()->paginate(15, ['*'], 'pp')->withQueryString();
-        $pledges  = $family->pledges()->paginate(15, ['*'], 'lp')->withQueryString();
+        $payments = $family->payments()->completed()->latest('payment_date')->paginate(15);
+        $pledges  = $family->pledges()->latest('invoice_date')->paginate(15);
 
         $auditLogs = \App\Models\AuditLog::where('auditable_type', Family::class)
             ->where('auditable_id', $id)
@@ -87,23 +87,36 @@ class MembersController extends Controller
         return view('admin.members.show', compact('family', 'payments', 'pledges', 'auditLogs'));
     }
 
+    public function paymentsAjax(int $id)
+    {
+        $family   = Family::withTrashed()->findOrFail($id);
+        $payments = $family->payments()->completed()->latest('payment_date')->paginate(15);
+        return response()->json(['html' => view('admin.members._payments', compact('family', 'payments'))->render()]);
+    }
+
+    public function pledgesAjax(int $id)
+    {
+        $family  = Family::withTrashed()->findOrFail($id);
+        $pledges = $family->pledges()->latest('invoice_date')->paginate(15);
+        return response()->json(['html' => view('admin.members._pledges', compact('family', 'pledges'))->render()]);
+    }
+
     public function exportPayments(int $id)
     {
         $family   = Family::withTrashed()->findOrFail($id);
-        $payments = $family->payments()->get();
+        $payments = $family->payments()->completed()->get();
 
         $filename = 'payments-' . str($family->name)->slug() . '.csv';
 
         return response()->streamDownload(function () use ($payments) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Date', 'Description', 'Amount', 'Reference', 'Status']);
+            fputcsv($out, ['Date', 'Description', 'Amount', 'Reference']);
             foreach ($payments as $p) {
                 fputcsv($out, [
                     $p->payment_date->format('Y-m-d'),
                     $p->description ?? '',
                     number_format($p->amount, 2),
                     $p->qb_transaction_id ?? $p->qb_sales_receipt_id ?? $p->paypal_transaction_id ?? '',
-                    $p->status->value,
                 ]);
             }
             fclose($out);

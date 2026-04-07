@@ -3,14 +3,16 @@
 namespace App\Models;
 
 use App\Services\HebrewDateService;
+use App\Traits\HasTenant;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Yahrtzeit extends Model
 {
+    use HasTenant;
+
     protected $fillable = [
-        'family_id',
-        'family_member_id',
+        'tenant_id',
         'relationship',
         'full_name',
         'hebrew_name',
@@ -39,21 +41,24 @@ class Yahrtzeit extends Model
             if ($model->date_of_death && !$model->hebrew_dod_override) {
                 $svc = app(HebrewDateService::class);
                 $h   = $svc->gregorianToHebrew($model->date_of_death);
-                $model->hebrew_date_of_death = "{$h['day']} {$h['month_name']} {$h['year']}";
+                $model->hebrew_date_of_death = $h['formatted'];
                 $model->hebrew_month         = $h['month'];
                 $model->hebrew_day           = $h['day'];
             }
         });
     }
 
-    public function family(): BelongsTo
+    public function families(): BelongsToMany
     {
-        return $this->belongsTo(Family::class);
+        return $this->belongsToMany(Family::class, 'family_yahrtzeit')
+                    ->withTimestamps()
+                    ->orderBy('name');
     }
 
-    public function familyMember(): BelongsTo
+    public function familyMembers(): BelongsToMany
     {
-        return $this->belongsTo(FamilyMember::class);
+        return $this->belongsToMany(FamilyMember::class, 'family_member_yahrtzeit')
+                    ->withTimestamps();
     }
 
     public function getRelationshipLabelAttribute(): ?string

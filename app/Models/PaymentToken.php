@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\HasTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PaymentToken extends Model
 {
-    protected $fillable = ['token', 'family_id', 'expires_at'];
+    use HasTenant;
+
+    protected $fillable = ['tenant_id', 'token', 'family_id', 'expires_at'];
 
     protected function casts(): array
     {
@@ -26,13 +29,26 @@ class PaymentToken extends Model
 
     public static function generateFor(Family $family): self
     {
-        // Regenerate: delete old tokens for this family and issue a fresh one
-        self::where('family_id', $family->id)->delete();
-
+        // Issue a fresh 30-day token. Old tokens are left intact so links
+        // already sent in previous emails remain valid until they naturally expire.
         return self::create([
-            'token'     => bin2hex(random_bytes(32)),
-            'family_id' => $family->id,
-            'expires_at'=> now()->addDays(30),
+            'token'      => bin2hex(random_bytes(32)),
+            'family_id'  => $family->id,
+            'expires_at' => now()->addDays(30),
         ]);
+    }
+
+    /**
+     * Return the newest valid token for this family, or create one if none exists.
+     * Use this for previews and test sends so live payment links are never invalidated.
+     */
+    public static function getOrCreateFor(Family $family): self
+    {
+        $existing = self::where('family_id', $family->id)
+            ->where('expires_at', '>', now())
+            ->latest('expires_at')
+            ->first();
+
+        return $existing ?? self::generateFor($family);
     }
 }

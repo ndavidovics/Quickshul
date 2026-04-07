@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Application Received &mdash; Young Israel of Memphis</title>
+    <title>Application Received &mdash; {{ $tenant->name ?? config('app.name') }}</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,16 +31,16 @@
 <body>
 <div class="page-wrapper">
     <div class="logo-container">
-        <img src="https://static.wixstatic.com/media/e7610d_01030d0ca83f445b8c033c146a1ee4fb~mv2.png" alt="Young Israel of Memphis">
+        <img src="{{ $tenant->logo_url ?? asset('img/quickshul-logo.svg') }}" alt="{{ $tenant->name ?? config('app.name') }}">
     </div>
 
     <div class="card">
         <div class="checkmark">&#10003;</div>
         <h1>Application Received!</h1>
-        <p>Thank you for applying to become a member of Young Israel of Memphis. We're excited to welcome you to our community.</p>
+        <p>Thank you for applying to become a member of {{ $tenant->name ?? config('app.name') }}. We're excited to welcome you to our community.</p>
         <p>Our office will review your application and be in touch with you shortly. If you have any questions in the meantime, please don't hesitate to reach out.</p>
         <div class="divider"></div>
-        <p class="contact">Questions? Contact us at <a href="mailto:exec@yiom.org">exec@yiom.org</a></p>
+        <p class="contact">Questions? Contact us at <a href="mailto:{{ $tenant->org_email ?? '' }}">{{ $tenant->org_email ?? '' }}</a></p>
         <a href="{{ route('login') }}" class="btn">Return to Login</a>
     </div>
 </div>

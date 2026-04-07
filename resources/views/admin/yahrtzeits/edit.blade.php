@@ -39,14 +39,28 @@
                     @endforeach
                 </select>
             </div>
-            <div class="form-group">
-                <label class="form-label">Linked Family Member <span class="text-muted text-sm">(optional)</span></label>
-                <select name="family_member_id" class="form-control">
-                    <option value="">— None —</option>
-                    @foreach($family->members as $m)
-                    <option value="{{ $m->id }}" {{ old('family_member_id', $yahrtzeit->family_member_id) == $m->id ? 'selected' : '' }}>{{ $m->full_name }}</option>
+            <div class="form-group" style="grid-column:1/-1">
+                <label class="form-label">Linked Families <span style="color:var(--gold)">*</span></label>
+                @php $linkedFamilyIds = old('family_ids', $yahrtzeit->families->pluck('id')->toArray()); @endphp
+                <select name="family_ids[]" id="edit-family-select" class="form-control" multiple required>
+                    @foreach($allFamilies as $f)
+                    <option value="{{ $f->id }}" {{ in_array($f->id, $linkedFamilyIds) ? 'selected' : '' }}>{{ $f->name }}</option>
                     @endforeach
                 </select>
+                <div class="text-muted text-sm" style="margin-top:0.25rem">Type to search and select all families this yahrtzeit should appear for.</div>
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+                <label class="form-label">Linked Family Members <span class="text-muted text-sm">(optional)</span></label>
+                @php
+                    $linkedMemberIds  = old('family_member_ids', $yahrtzeit->familyMembers->pluck('id')->toArray());
+                    $availableMembers = $yahrtzeit->families->map->members->flatten()->unique('id')->sortBy('full_name');
+                @endphp
+                <select name="family_member_ids[]" id="edit-member-select" class="form-control" multiple>
+                    @foreach($availableMembers as $m)
+                    <option value="{{ $m->id }}" {{ in_array($m->id, $linkedMemberIds) ? 'selected' : '' }}>{{ $m->full_name }} ({{ $m->family->name ?? '' }})</option>
+                    @endforeach
+                </select>
+                <div class="text-muted text-sm" style="margin-top:0.25rem">Select which individual members within the linked families should receive this yahrtzeit reminder.</div>
             </div>
             <div class="form-group" style="grid-column:1/-1">
                 <label class="form-label">Notes</label>
@@ -119,4 +133,27 @@
 
 {{-- Hebrew Keyboard --}}
 @include('admin.yahrtzeits._hebrew_keyboard')
+@endsection
+
+@section('styles')
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.default.min.css" rel="stylesheet">
+<style>.ts-wrapper { font-size: 0.875rem; }</style>
+@endsection
+
+@section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    new TomSelect('#edit-family-select', {
+        plugins: ['remove_button'],
+        placeholder: 'Type to search families…',
+        maxOptions: 300,
+    });
+    new TomSelect('#edit-member-select', {
+        plugins: ['remove_button'],
+        placeholder: 'Type to search members…',
+        maxOptions: 500,
+    });
+});
+</script>
 @endsection

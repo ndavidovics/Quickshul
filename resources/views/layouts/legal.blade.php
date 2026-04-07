@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title') &mdash; Young Israel of Memphis Member Portal</title>
+    <title>@yield('title') &mdash; {{ $tenant->name ?? config('app.name') }} Member Portal</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192.png">
@@ -197,11 +197,9 @@
 
     <header class="site-header">
         <a href="/login">
-            <img class="header-logo"
-                 src="https://static.wixstatic.com/media/e7610d_01030d0ca83f445b8c033c146a1ee4fb~mv2.png"
-                 alt="Young Israel of Memphis">
+            @if($tenant->logo_url ?? null)<img class="header-logo" src="{{ $tenant->logo_url }}" alt="{{ $tenant->name }}">@endif
             <div class="header-brand-text">
-                <span class="header-name">Young Israel of Memphis</span>
+                <span class="header-name">{{ $tenant->name ?? config('app.name') }}</span>
                 <span class="header-sub">Member Portal</span>
             </div>
         </a>
@@ -220,7 +218,7 @@
         </div>
 
         <div class="legal-footer">
-            <span>&copy; {{ date('Y') }} Young Israel of Memphis. All rights reserved.</span>
+            <span>&copy; {{ date('Y') }} {{ $tenant->name ?? config('app.name') }}. All rights reserved.</span>
             <a href="/login">&larr; Back to Login</a>
             <a href="/agreement">End User License Agreement</a>
             <a href="/privacy">Privacy Policy</a>

@@ -77,35 +77,6 @@
             </div>
         </div>
 
-        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border-dim)">
-            <div style="font-size:0.85rem;font-weight:600;color:var(--gold);margin-bottom:1rem">Date of Death <span class="text-muted" style="font-weight:400;font-size:0.75rem">(leave blank if living)</span></div>
-            <div class="grid-2">
-                <div class="form-group">
-                    <label class="form-label">Date of Death (Gregorian)</label>
-                    <input type="date" name="date_of_death" class="form-control" value="{{ old('date_of_death', $member->date_of_death?->format('Y-m-d')) }}">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">
-                        Hebrew DOD (Yahrzeit)
-                        @if($member->hebrew_dod_override)
-                            <span class="badge badge-gold" style="font-size:0.6rem;margin-left:0.3rem">locked</span>
-                        @else
-                            <span class="text-muted" style="font-size:0.7rem;font-weight:400">(auto-computed)</span>
-                        @endif
-                    </label>
-                    <input type="text" name="hebrew_date_of_death" class="form-control"
-                           placeholder="e.g. 15 Tishrei 5785"
-                           value="{{ old('hebrew_date_of_death', $member->hebrew_date_of_death) }}">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" style="display:flex;align-items:center;gap:0.4rem">
-                        <input type="checkbox" name="hebrew_dod_override" value="1" {{ old('hebrew_dod_override', $member->hebrew_dod_override) ? 'checked' : '' }}>
-                        Lock Hebrew DOD (override auto-compute)
-                    </label>
-                </div>
-            </div>
-        </div>
-
         <div style="margin-top:1.5rem;display:flex;gap:0.75rem">
             <button type="submit" class="btn btn-gold">Save Member</button>
             <a href="{{ route('admin.members.edit', $family->id) }}" class="btn btn-outline">Cancel</a>

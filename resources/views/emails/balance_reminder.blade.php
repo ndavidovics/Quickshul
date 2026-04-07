@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Outstanding Balance — Young Israel of Memphis</title>
+<title>Outstanding Balance — {{ $tenant->name ?? config('app.name') }}</title>
 </head>
 <body style="margin:0;padding:0;background:#f0ede8;font-family:'Segoe UI',Arial,sans-serif;color:#1a2d5a">
 
@@ -15,10 +15,10 @@
     <tr>
         <td style="background:#1a2d5a;padding:28px 36px;border-radius:10px 10px 0 0;text-align:center">
             <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:700;color:#c9a84c;letter-spacing:0.02em">
-                Young Israel of Memphis
+                {{ $tenant->name ?? config('app.name') }}
             </div>
             <div style="font-size:11px;color:rgba(255,255,255,0.55);letter-spacing:0.12em;text-transform:uppercase;margin-top:6px">
-                Torah &bull; Tefillah &bull; Tradition
+                {{ $tenant->tagline ?? 'Torah &bull; Tefillah &bull; Tradition' }}
             </div>
         </td>
     </tr>
@@ -91,10 +91,10 @@
             </p>
 
             <p style="font-size:15px;line-height:1.8;color:#333;margin:0 0 4px">
-                With blessings and gratitude,
+                With bracha and gratitude,
             </p>
             <p style="font-size:15px;font-weight:600;color:#1a2d5a;margin:0">
-                The Young Israel of Memphis
+                {{ $tenant->name ?? config('app.name') }}
             </p>
         </td>
     </tr>
@@ -103,9 +103,8 @@
     <tr>
         <td style="background:#1a2d5a;padding:20px 36px;border-radius:0 0 10px 10px;text-align:center">
             <p style="font-size:12px;color:rgba(255,255,255,0.5);margin:0;line-height:1.8">
-                531 S Yates Rd &bull; Memphis, TN 38120<br>
-                <a href="mailto:exec@yiom.org" style="color:#c9a84c;text-decoration:none">exec@yiom.org</a>
-                &bull; (901) 761-6060
+                {{ $tenant->org_address ?? '' }}@if($tenant->org_address ?? false)<br>@endif
+                @if($tenant->org_email ?? false)<a href="mailto:{{ $tenant->org_email }}" style="color:#c9a84c;text-decoration:none">{{ $tenant->org_email }}</a>@endif
             </p>
         </td>
     </tr>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Password &mdash; Young Israel of Memphis</title>
+    <title>Reset Password &mdash; {{ $tenant->name ?? config('app.name') }}</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192.png">
@@ -267,10 +267,10 @@
         <!-- Brand Header -->
         <div class="brand-header">
             <div class="logo-container">
-                <img src="https://static.wixstatic.com/media/e7610d_01030d0ca83f445b8c033c146a1ee4fb~mv2.png"
-                     alt="Young Israel of Memphis">
+                <img src="{{ $tenant->logo_url ?? asset('img/quickshul-logo.svg') }}"
+                     alt="{{ $tenant->name ?? config('app.name') }}">
             </div>
-            <div class="brand-name">Young Israel of Memphis</div>
+            <div class="brand-name">{{ $tenant->name ?? config('app.name') }}</div>
             <div class="brand-subtitle">Member Portal</div>
         </div>
 
@@ -348,7 +348,7 @@
         </div>
 
         <div class="ornament">
-            <span>&#10022;</span> &nbsp; Young Israel of Memphis &nbsp; <span>&#10022;</span>
+            <span>&#10022;</span> &nbsp; {{ $tenant->name ?? config('app.name') }} &nbsp; <span>&#10022;</span>
         </div>
 
         <div class="legal-links">

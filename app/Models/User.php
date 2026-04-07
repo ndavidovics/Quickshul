@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,9 +11,10 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasTenant;
 
     protected $fillable = [
+        'tenant_id',
         'name',
         'email',
         'password',
@@ -20,6 +22,9 @@ class User extends Authenticatable
         'avatar',
         'family_id',
         'is_admin',
+        'is_tenant_owner',
+        'is_super_admin',
+        'last_login_at',
     ];
 
     protected $hidden = [
@@ -31,8 +36,11 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'last_login_at'     => 'datetime',
             'password'          => 'hashed',
             'is_admin'          => 'boolean',
+            'is_tenant_owner'   => 'boolean',
+            'is_super_admin'    => 'boolean',
         ];
     }
 

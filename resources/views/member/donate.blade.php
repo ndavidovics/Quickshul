@@ -12,7 +12,7 @@
 
 <div style="max-width:560px;margin:0 auto">
     <h1 class="page-title">{{ $isPledgePayment ? 'Pay Pledge' : 'Make a Donation' }}</h1>
-    <p class="page-subtitle">{{ $isPledgePayment ? 'Young Israel of Memphis — Pledge Payment' : 'Support Young Israel of Memphis' }}</p>
+    <p class="page-subtitle">{{ $isPledgePayment ? ($tenant->name ?? config('app.name')).' — Pledge Payment' : 'Support '.($tenant->name ?? config('app.name')) }}</p>
 
     {{-- ── Success State ─────────────────────────────────────────────────────── --}}
     <div id="donation-success" style="display:none">
@@ -439,14 +439,14 @@
                     currencyCode:         'USD',
                     merchantCapabilities: config.merchantCapabilities,
                     supportedNetworks:    config.supportedNetworks,
-                    total: { label: 'Young Israel of Memphis', type: 'final', amount: amount.toFixed(2) },
+                    total: { label: '{{ $tenant->name ?? config("app.name") }}', type: 'final', amount: amount.toFixed(2) },
                 });
 
                 // Per PayPal docs: validateMerchant does NOT receive orderId
                 session.onvalidatemerchant = function (event) {
                     applepay.validateMerchant({
                         validationUrl: event.validationURL,
-                        displayName:   'Young Israel of Memphis',
+                        displayName:   '{{ $tenant->name ?? config("app.name") }}',
                     }).then(function (result) {
                         session.completeMerchantValidation(result.merchantSession);
                     }).catch(function (err) {
@@ -544,7 +544,7 @@
                                     currencyCode:     'USD',
                                     totalPriceStatus: 'FINAL',
                                     totalPrice:       amount.toFixed(2),
-                                    totalPriceLabel:  'Donation to Young Israel of Memphis',
+                                    totalPriceLabel:  'Donation to {{ $tenant->name ?? config("app.name") }}',
                                 },
                             }).then(function (paymentData) {
                                 return googlepay.confirmOrder({

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Member Portal') &mdash; Young Israel of Memphis</title>
+    <title>@yield('title', 'Member Portal') &mdash; {{ $tenant->name ?? config('app.name') }}</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -73,6 +73,7 @@
             padding: 2px;
         }
 
+        .header-logo-letter { width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%; border: 2px solid var(--gold); background: var(--gold); color: #1a2d5a; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 800; font-family: 'Playfair Display', serif; }
         .brand-text { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
         .brand-name { font-family: 'Playfair Display', serif; font-size: 0.9rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .brand-sub  { font-size: 0.62rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); }
@@ -401,11 +402,13 @@
 <body>
     <header class="site-header">
         <a class="header-brand" href="{{ route('dashboard') }}">
-            <img class="header-logo"
-                 src="https://static.wixstatic.com/media/e7610d_01030d0ca83f445b8c033c146a1ee4fb~mv2.png"
-                 alt="YIOM">
+            @if($tenant->logo_url ?? null)
+                <img class="header-logo" src="{{ $tenant->logo_url }}" alt="{{ $tenant->name }}">
+            @else
+                <div class="header-logo-letter">{{ strtoupper(mb_substr($tenant->name ?? config('app.name'), 0, 1)) }}</div>
+            @endif
             <div class="brand-text">
-                <span class="brand-name">Young Israel of Memphis</span>
+                <span class="brand-name">{{ $tenant->name ?? config('app.name') }}</span>
                 <span class="brand-sub">Member Portal</span>
             </div>
         </a>

@@ -29,13 +29,13 @@ class PayPalService
                     'currency_code' => 'USD',
                     'value'         => number_format($amount, 2, '.', ''),
                 ],
-                'description' => 'Young Israel of Memphis — Membership Dues',
+                'description' => ($orgName = app()->bound('tenant') ? app('tenant')->name : config('app.name')) . ' — Membership Dues',
                 'custom_id'   => (string)$familyId,
             ]],
             'application_context' => [
                 'return_url'  => $returnUrl,
                 'cancel_url'  => $cancelUrl,
-                'brand_name'  => 'Young Israel of Memphis',
+                'brand_name'  => app()->bound('tenant') ? app('tenant')->name : config('app.name'),
                 'user_action' => 'PAY_NOW',
             ],
         ]);
@@ -82,7 +82,7 @@ class PayPalService
                 'custom_id'   => (string)$familyId,
             ]],
             'application_context' => [
-                'brand_name'          => 'Young Israel of Memphis',
+                'brand_name'          => app()->bound('tenant') ? app('tenant')->name : config('app.name'),
                 'shipping_preference' => 'NO_SHIPPING',
             ],
         ];

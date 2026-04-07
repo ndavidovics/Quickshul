@@ -14,12 +14,18 @@ class DashboardController extends Controller
         $user   = auth()->user();
         $family = $user->family?->load(['members', 'emails']);
 
-        $yahrzeits = [];
-        $birthdays = [];
+        $yahrtzeits = collect();
+        $birthdays  = collect();
 
         if ($family) {
-            $yahrzeits = $this->hebrewDate->upcomingYahrzeits($family->id, 60);
-            $birthdays = $this->hebrewDate->upcomingBirthdays($family->id, 60);
+            $yahrtzeits = $this->hebrewDate->upcomingYahrzeits($family->id, 60);
+            $upcomingHebrew = $this->hebrewDate->upcomingBirthdays($family->id, 60);
+            
+            // Enhance birthday data with actual Gregorian birthday
+            $birthdays = $upcomingHebrew->map(function ($item) {
+                $item['actual_gregorian_date'] = $item['member']->date_of_birth;
+                return $item;
+            });
         }
 
         $recentPayments = $family
@@ -36,6 +42,6 @@ class DashboardController extends Controller
                 ->sum('amount')
             : 0;
 
-        return view('member.dashboard', compact('user', 'family', 'yahrzeits', 'birthdays', 'recentPayments', 'openPledges', 'paidPast12Months'));
+        return view('member.dashboard', compact('user', 'family', 'yahrtzeits', 'birthdays', 'recentPayments', 'openPledges', 'paidPast12Months'));
     }
 }

@@ -49,16 +49,10 @@ class MemberProfileController extends Controller
             'date_of_birth'        => 'nullable|date',
             'hebrew_date_of_birth' => 'nullable|string|max:50',
             'hebrew_dob_override'  => 'boolean',
-            'date_of_death'        => 'nullable|date',
-            'hebrew_date_of_death' => 'nullable|string|max:50',
-            'hebrew_dod_override'  => 'boolean',
         ]);
 
         if (!empty($validated['date_of_birth']) && empty($validated['hebrew_dob_override'])) {
             $validated['hebrew_date_of_birth'] = $this->hebrewDate->formatForStorage($validated['date_of_birth']);
-        }
-        if (!empty($validated['date_of_death']) && empty($validated['hebrew_dod_override'])) {
-            $validated['hebrew_date_of_death'] = $this->hebrewDate->formatForStorage($validated['date_of_death']);
         }
 
         $validated['family_id'] = $family->id;
@@ -86,16 +80,10 @@ class MemberProfileController extends Controller
             'date_of_birth'        => 'nullable|date',
             'hebrew_date_of_birth' => 'nullable|string|max:50',
             'hebrew_dob_override'  => 'boolean',
-            'date_of_death'        => 'nullable|date',
-            'hebrew_date_of_death' => 'nullable|string|max:50',
-            'hebrew_dod_override'  => 'boolean',
         ]);
 
         if (!empty($validated['date_of_birth']) && empty($validated['hebrew_dob_override'])) {
             $validated['hebrew_date_of_birth'] = $this->hebrewDate->formatForStorage($validated['date_of_birth']);
-        }
-        if (!empty($validated['date_of_death']) && empty($validated['hebrew_dod_override'])) {
-            $validated['hebrew_date_of_death'] = $this->hebrewDate->formatForStorage($validated['date_of_death']);
         }
 
         $member->update($validated);

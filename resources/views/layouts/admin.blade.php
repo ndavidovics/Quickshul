@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Admin') &mdash; YIOM Portal Admin</title>
+    <title>@yield('title', 'Admin') &mdash; {{ $tenant->name ?? config('app.name') }} Admin</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -53,6 +53,7 @@
 
         .topbar-brand { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
         .topbar-logo  { width: 32px; height: 32px; object-fit: contain; border-radius: 50%; border: 2px solid var(--gold); background: #fff; padding: 1px; }
+        .topbar-logo-letter { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--gold); background: var(--gold); color: #1a2d5a; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; font-weight: 800; font-family: 'Playfair Display', serif; flex-shrink: 0; }
         .topbar-title { font-family: 'Playfair Display', serif; font-size: 0.9rem; font-weight: 700; color: #fff; }
         .topbar-badge { font-size: 0.6rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; background: rgba(201,168,76,0.2); color: var(--gold); padding: 0.15rem 0.5rem; border-radius: 4px; margin-left: 0.4rem; }
 
@@ -97,6 +98,61 @@
 
         /* ── Main content ── */
         .admin-main { flex: 1; overflow-y: auto; padding: 2rem 2rem 4rem; }
+
+        /* ── Hamburger (hidden on desktop) ── */
+        .hamburger {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.3rem;
+            color: var(--text);
+            flex-direction: column;
+            gap: 5px;
+            margin-right: 0.5rem;
+        }
+        .hamburger span {
+            display: block;
+            width: 22px;
+            height: 2px;
+            background: currentColor;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+
+        /* ── Sidebar overlay backdrop ── */
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 99;
+        }
+        .sidebar-backdrop.open { display: block; }
+
+        /* ── Mobile styles ── */
+        @media (max-width: 768px) {
+            .hamburger { display: flex; }
+
+            .admin-sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                z-index: 100;
+                transform: translateX(-100%);
+                transition: transform 0.25s ease;
+                padding-top: 1rem;
+                width: 240px;
+            }
+            .admin-sidebar.open { transform: translateX(0); }
+
+            .admin-main { padding: 1.25rem 1rem 4rem; }
+
+            .topbar-right .topbar-name { display: none; }
+
+            .admin-topbar { padding: 0 1rem; }
+        }
 
         /* ── Reuse member styles ── */
         .card { background: var(--bg-card); border: 1px solid var(--border-dim); border-radius: 12px; padding: 1.5rem; }
@@ -165,14 +221,23 @@
 </head>
 <body>
     <div class="admin-topbar">
-        <a class="topbar-brand" href="{{ route('admin.members') }}">
-            <img class="topbar-logo" src="https://static.wixstatic.com/media/e7610d_01030d0ca83f445b8c033c146a1ee4fb~mv2.png" alt="YIOM">
-            <span class="topbar-title">YIOM Portal</span>
-            <span class="topbar-badge">Admin</span>
-        </a>
+        <div style="display:flex;align-items:center">
+            <button class="hamburger" id="sidebar-toggle" aria-label="Toggle menu">
+                <span></span><span></span><span></span>
+            </button>
+            <a class="topbar-brand" href="{{ route('admin.members') }}">
+                @if($tenant->logo_url ?? null)
+                    <img class="topbar-logo" src="{{ $tenant->logo_url }}" alt="{{ $tenant->name ?? config('app.name') }}">
+                @else
+                    <div class="topbar-logo-letter">{{ strtoupper(mb_substr($tenant->name ?? config('app.name'), 0, 1)) }}</div>
+                @endif
+                <span class="topbar-title">{{ $tenant->name ?? config('app.name') }}</span>
+                <span class="topbar-badge">Admin</span>
+            </a>
+        </div>
         <div class="topbar-right">
             <a href="{{ route('dashboard') }}" class="btn-topbar-member">← Member View</a>
-            <span>{{ auth()->user()->name }}</span>
+            <span class="topbar-name">{{ auth()->user()->name }}</span>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit" class="btn-logout">Sign Out</button>
@@ -180,8 +245,10 @@
         </div>
     </div>
 
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
     <div class="admin-body">
-        <aside class="admin-sidebar">
+        <aside class="admin-sidebar" id="admin-sidebar">
             <div class="sidebar-section">
                 <div class="sidebar-label">Members</div>
                 <a href="{{ route('admin.members') }}" class="sidebar-link {{ request()->routeIs('admin.members*') ? 'active' : '' }}">
@@ -197,16 +264,24 @@
                     <span class="sidebar-icon">📄</span> Pledges
                 </a>
             </div>
+            @if($tenant->qb_enabled ?? false)
             <div class="sidebar-section">
                 <div class="sidebar-label">Integrations</div>
                 <a href="{{ route('admin.qb') }}" class="sidebar-link {{ request()->routeIs('admin.qb*') ? 'active' : '' }}">
                     <span class="sidebar-icon">📊</span> QuickBooks Sync
                 </a>
             </div>
+            @endif
             <div class="sidebar-section">
                 <div class="sidebar-label">Communications</div>
                 <a href="{{ route('admin.emails') }}" class="sidebar-link {{ request()->routeIs('admin.emails*') ? 'active' : '' }}">
                     <span class="sidebar-icon">✉️</span> Email Reminders
+                </a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-label">Calendar</div>
+                <a href="{{ route('admin.calendar.generate') }}" class="sidebar-link {{ request()->routeIs('admin.calendar.*') ? 'active' : '' }}">
+                    <span class="sidebar-icon">📅</span> Calendar Builder
                 </a>
             </div>
             <div class="sidebar-section">
@@ -220,6 +295,9 @@
                 </a>
                 <a href="{{ route('admin.users') }}" class="sidebar-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}">
                     <span class="sidebar-icon">🔑</span> User Management
+                </a>
+                <a href="{{ route('admin.settings') }}" class="sidebar-link {{ request()->routeIs('admin.settings*') ? 'active' : '' }}">
+                    <span class="sidebar-icon">⚙️</span> Settings
                 </a>
             </div>
         </aside>
@@ -240,5 +318,25 @@
     </div>
 
     @yield('scripts')
+<script>
+(function () {
+    var toggle   = document.getElementById('sidebar-toggle');
+    var sidebar  = document.getElementById('admin-sidebar');
+    var backdrop = document.getElementById('sidebar-backdrop');
+
+    function open()  { sidebar.classList.add('open'); backdrop.classList.add('open'); }
+    function close() { sidebar.classList.remove('open'); backdrop.classList.remove('open'); }
+
+    toggle.addEventListener('click', function () {
+        sidebar.classList.contains('open') ? close() : open();
+    });
+    backdrop.addEventListener('click', close);
+
+    // Close on nav link tap (mobile UX)
+    sidebar.querySelectorAll('.sidebar-link').forEach(function (link) {
+        link.addEventListener('click', close);
+    });
+})();
+</script>
 </body>
 </html>

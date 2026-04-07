@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Member Login &mdash; Young Israel of Memphis</title>
+    <title>Member Login &mdash; {{ $tenant->name ?? config('app.name') }}</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192.png">
@@ -71,6 +71,20 @@
             object-fit: contain;
             display: block;
             border-radius: 50%;
+        }
+
+        .logo-letter {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: var(--navy);
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 800;
+            font-family: 'Playfair Display', serif;
         }
 
         .brand-name {
@@ -344,10 +358,13 @@
         <!-- Brand Header -->
         <div class="brand-header">
             <div class="logo-container">
-                <img src="https://static.wixstatic.com/media/e7610d_01030d0ca83f445b8c033c146a1ee4fb~mv2.png"
-                     alt="Young Israel of Memphis">
+                @if($tenant->logo_url ?? null)
+                    <img src="{{ $tenant->logo_url }}" alt="{{ $tenant->name ?? config('app.name') }}">
+                @else
+                    <div class="logo-letter">{{ strtoupper(mb_substr($tenant->name ?? config('app.name'), 0, 1)) }}</div>
+                @endif
             </div>
-            <div class="brand-name">Young Israel of Memphis</div>
+            <div class="brand-name">{{ $tenant->name ?? config('app.name') }}</div>
             <div class="brand-subtitle">Member Portal</div>
         </div>
 
@@ -427,7 +444,7 @@
 
             <div class="card-footer">
                 <p>Having trouble accessing your account?<br>
-                Contact the synagogue office for assistance at <a href="mailto:exec@yiom.org">exec@yiom.org</a>.</p>
+                Contact the synagogue office for assistance at <a href="mailto:{{ $tenant->org_email ?? '' }}">{{ $tenant->org_email ?? '' }}</a>.</p>
                 <p style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border)">
                     Not yet a member?
                     <a href="{{ route('apply') }}" style="color:var(--navy);font-weight:600;text-decoration:none">Apply for membership &rarr;</a>
@@ -436,7 +453,7 @@
         </div>
 
         <div class="ornament">
-            <span>&#10022;</span> &nbsp; Young Israel of Memphis &nbsp; <span>&#10022;</span>
+            <span>&#10022;</span> &nbsp; {{ $tenant->name ?? config('app.name') }} &nbsp; <span>&#10022;</span>
         </div>
 
         <div class="legal-links">

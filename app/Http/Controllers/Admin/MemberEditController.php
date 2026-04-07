@@ -7,9 +7,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Family;
 use App\Models\FamilyEmail;
 use App\Models\FamilyMember;
+use App\Models\User;
 use App\Services\AuditService;
 use App\Services\HebrewDateService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class MemberEditController extends Controller
 {
@@ -20,11 +22,18 @@ class MemberEditController extends Controller
 
     public function edit(int $id)
     {
-        $family = Family::with(['emails', 'members'])->findOrFail($id);
+        $family = Family::with(['emails', 'members', 'yahrtzeits'])->findOrFail($id);
+
+        // Map email → user so we can show last login per email row
+        $emailAddresses = $family->emails->pluck('email');
+        $usersByEmail   = User::whereIn('email', $emailAddresses)
+            ->get(['email', 'last_login_at', 'avatar'])
+            ->keyBy('email');
 
         return view('admin.members.edit', [
             'family'          => $family,
             'membershipTypes' => MembershipType::cases(),
+            'usersByEmail'    => $usersByEmail,
         ]);
     }
 
@@ -65,19 +74,12 @@ class MemberEditController extends Controller
             'date_of_birth'        => 'nullable|date',
             'hebrew_date_of_birth' => 'nullable|string|max:50',
             'hebrew_dob_override'  => 'boolean',
-            'date_of_death'        => 'nullable|date',
-            'hebrew_date_of_death' => 'nullable|string|max:50',
-            'hebrew_dod_override'  => 'boolean',
         ]);
 
         $validated['family_id'] = $familyId;
 
-        // Auto-compute Hebrew dates if not overridden
         if (!empty($validated['date_of_birth']) && empty($validated['hebrew_dob_override'])) {
             $validated['hebrew_date_of_birth'] = $this->hebrewDate->formatForStorage($validated['date_of_birth']);
-        }
-        if (!empty($validated['date_of_death']) && empty($validated['hebrew_dod_override'])) {
-            $validated['hebrew_date_of_death'] = $this->hebrewDate->formatForStorage($validated['date_of_death']);
         }
 
         $member = FamilyMember::create($validated);
@@ -108,17 +110,10 @@ class MemberEditController extends Controller
             'date_of_birth'        => 'nullable|date',
             'hebrew_date_of_birth' => 'nullable|string|max:50',
             'hebrew_dob_override'  => 'boolean',
-            'date_of_death'        => 'nullable|date',
-            'hebrew_date_of_death' => 'nullable|string|max:50',
-            'hebrew_dod_override'  => 'boolean',
         ]);
 
-        // Recompute Hebrew dates if date changed and no override
         if (!empty($validated['date_of_birth']) && empty($validated['hebrew_dob_override'])) {
             $validated['hebrew_date_of_birth'] = $this->hebrewDate->formatForStorage($validated['date_of_birth']);
-        }
-        if (!empty($validated['date_of_death']) && empty($validated['hebrew_dod_override'])) {
-            $validated['hebrew_date_of_death'] = $this->hebrewDate->formatForStorage($validated['date_of_death']);
         }
 
         $member->update($validated);
@@ -141,7 +136,15 @@ class MemberEditController extends Controller
         $family = Family::findOrFail($familyId);
 
         $request->validate([
-            'email' => 'required|email|unique:family_emails,email',
+            'email' => [
+                'required', 'email', 'unique:family_emails,email',
+                function ($attr, $value, $fail) use ($familyId) {
+                    $user = User::where('email', $value)->first();
+                    if ($user && $user->family_id && $user->family_id !== $familyId) {
+                        $fail('This email belongs to a different family account.');
+                    }
+                },
+            ],
         ]);
 
         $isPrimary = $family->emails()->count() === 0;
@@ -152,9 +155,31 @@ class MemberEditController extends Controller
             'is_primary' => $isPrimary,
         ]);
 
+        // Create a User account if one doesn't already exist for this email,
+        // so the person can log in. Send a password reset email to let them set their password.
+        $userCreated = false;
+        $existingUser = User::where('email', $request->email)->first();
+
+        if (!$existingUser) {
+            User::create([
+                'name'      => $family->name,
+                'email'     => $request->email,
+                'family_id' => $familyId,
+                'password'  => Hash::make('Torah613!'),
+            ]);
+            $userCreated = true;
+        } elseif (!$existingUser->family_id) {
+            // User exists but isn't linked to a family — link them
+            $existingUser->update(['family_id' => $familyId]);
+        }
+
         $this->audit->log('family.email.added', $family, [], ['email' => $request->email], "Added email {$request->email} to {$family->name}");
 
-        return redirect()->route('admin.members.edit', $familyId)->with('success', 'Email added.');
+        $msg = $userCreated
+            ? 'Email added and login account created for ' . $request->email . ' (default password set).'
+            : 'Email added.';
+
+        return redirect()->route('admin.members.edit', $familyId)->with('success', $msg);
     }
 
     public function removeEmail(int $familyId, int $eid)
