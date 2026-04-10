@@ -9,6 +9,30 @@
     </div>
 </div>
 
+{{-- Global Stats --}}
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;margin-bottom:1.5rem">
+    <div class="stat-card">
+        <div class="stat-label">Active Shuls</div>
+        <div class="stat-value gold">{{ number_format($globalStats['total_active']) }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Total Families</div>
+        <div class="stat-value">{{ number_format($globalStats['total_families']) }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-value">{{ number_format($globalStats['total_users']) }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Total Payments</div>
+        <div class="stat-value">{{ number_format($globalStats['total_payments']) }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">New This Month</div>
+        <div class="stat-value">{{ number_format($globalStats['new_this_month']) }}</div>
+    </div>
+</div>
+
 <div class="card">
     <div style="overflow-x:auto">
         <table class="table">
@@ -22,6 +46,7 @@
                     <th>Gmail</th>
                     <th>PayPal</th>
                     <th>QB</th>
+                    <th>QB Sync</th>
                     <th>Created</th>
                     <th>Actions</th>
                 </tr>
@@ -60,6 +85,15 @@
                     <td style="text-align:center">{{ $t->isGmailConnected() ? '✅' : '❌' }}</td>
                     <td style="text-align:center">{{ $t->isPayPalConnected() ? '✅' : '❌' }}</td>
                     <td style="text-align:center">{{ $t->qb_enabled ? '✅' : '❌' }}</td>
+                    <td style="text-align:center">
+                        @if(in_array($t->id, $syncedTenantIds))
+                            <span class="badge badge-green">✓ Synced</span>
+                        @elseif($t->qb_enabled)
+                            <span class="badge badge-yellow">Never</span>
+                        @else
+                            <span class="text-muted text-sm">—</span>
+                        @endif
+                    </td>
                     <td class="text-muted text-sm" style="white-space:nowrap">{{ $t->created_at->format('M j, Y') }}</td>
                     <td>
                         <div class="flex gap-2">
@@ -81,7 +115,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="10" style="text-align:center;padding:2rem;color:var(--text-muted)">
+                    <td colspan="11" style="text-align:center;padding:2rem;color:var(--text-muted)">
                         No tenants found.
                     </td>
                 </tr>

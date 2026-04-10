@@ -23,7 +23,7 @@
                 <label class="form-label">Membership Type</label>
                 <select name="membership_type" class="form-control">
                     @foreach($membershipTypes as $type)
-                    <option value="{{ $type->value }}" {{ $family->membership_type->value === $type->value ? 'selected' : '' }}>{{ $type->label() }}</option>
+                    <option value="{{ $type->slug }}" {{ $family->membership_type === $type->slug ? 'selected' : '' }}>{{ $type->label }}</option>
                     @endforeach
                 </select>
             </div>

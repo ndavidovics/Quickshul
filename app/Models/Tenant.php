@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Crypt;
 
 class Tenant extends Model
 {
@@ -24,6 +26,42 @@ class Tenant extends Model
         'gmail_token_expires_at' => 'datetime',
         'qb_enabled' => 'boolean',
     ];
+
+    // Encrypt sensitive credentials at rest
+    protected function gmailAccessToken(): Attribute
+    {
+        return Attribute::make(
+            get: fn($v) => $v ? $this->tryDecrypt($v) : null,
+            set: fn($v) => $v ? Crypt::encryptString($v) : null,
+        );
+    }
+
+    protected function gmailRefreshToken(): Attribute
+    {
+        return Attribute::make(
+            get: fn($v) => $v ? $this->tryDecrypt($v) : null,
+            set: fn($v) => $v ? Crypt::encryptString($v) : null,
+        );
+    }
+
+    protected function paypalSecret(): Attribute
+    {
+        return Attribute::make(
+            get: fn($v) => $v ? $this->tryDecrypt($v) : null,
+            set: fn($v) => $v ? Crypt::encryptString($v) : null,
+        );
+    }
+
+    // Safe decrypt — returns raw value if not yet encrypted (migration period)
+    private function tryDecrypt(?string $value): ?string
+    {
+        if (!$value) return null;
+        try {
+            return Crypt::decryptString($value);
+        } catch (\Throwable) {
+            return $value; // already plaintext (pre-migration row)
+        }
+    }
 
     public function membershipTypes()
     {

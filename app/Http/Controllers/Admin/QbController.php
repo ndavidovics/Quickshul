@@ -27,7 +27,12 @@ class QbController extends Controller
         $unresolvedCount = QbConflict::unresolved()->count();
         $recentLogs      = QbSyncLog::latest()->limit(10)->get();
 
-        return view('admin.qb.index', compact('connection', 'isConnected', 'lastSync', 'unresolvedCount', 'recentLogs'));
+        // Warn if membership types have no QB labels mapped yet
+        $unmappedTypes = \App\Models\MembershipType::where('active', true)
+            ->get()
+            ->filter(fn($t) => empty($t->qb_labels));
+
+        return view('admin.qb.index', compact('connection', 'isConnected', 'lastSync', 'unresolvedCount', 'recentLogs', 'unmappedTypes'));
     }
 
     public function connect()
@@ -37,10 +42,16 @@ class QbController extends Controller
 
     public function redirect()
     {
-        $url = $this->qbService->getAuthorizationUrl();
+        $tenantId = app()->bound('tenant') ? app('tenant')->id : null;
+
+        // Store tenant_id server-side in session so the root-domain callback can't be forged
+        session(['qb_oauth_tenant_id' => $tenantId]);
+
+        $url = $this->qbService->getAuthorizationUrl($tenantId);
         return redirect($url);
     }
 
+    // Called from admin subdomain — tenant is already bound
     public function callback(Request $request)
     {
         $code    = $request->query('code');
@@ -53,10 +64,57 @@ class QbController extends Controller
         try {
             $conn = $this->qbService->exchangeCodeForTokens($code, $realmId);
             $this->audit->log('admin.qb.connected', null, [], ['realm_id' => $realmId], 'QuickBooks connected successfully');
-            return redirect()->route('admin.qb')->with('success', 'QuickBooks connected successfully!');
+            return redirect()->route('admin.membership-types.index')->with('qb_just_connected', true);
         } catch (\Throwable $e) {
             \Log::error('QB callback error: ' . $e->getMessage());
             return redirect()->route('admin.qb.connect')->withErrors(['error' => 'Failed to connect: ' . $e->getMessage()]);
+        }
+    }
+
+    // Called from root domain (quickshul.com/auth/qb/callback) — no tenant bound
+    public function rootCallback(Request $request)
+    {
+        $code    = $request->query('code');
+        $realmId = $request->query('realmId');
+        $state   = $request->query('state', '');
+
+        if (!$code || !$realmId) {
+            return redirect('/')->withErrors(['error' => 'QuickBooks authorization failed.']);
+        }
+
+        // Prefer server-side session (set during redirect) over state param to prevent forgery
+        $tenantId = session('qb_oauth_tenant_id');
+        if (!$tenantId) {
+            // Fallback: decode from state param (older flow)
+            $decoded  = json_decode(base64_decode($state), true);
+            $tenantId = $decoded['tenant_id'] ?? null;
+        }
+
+        if (!$tenantId) {
+            \Log::error('QB rootCallback: no tenant_id in session or state');
+            return redirect('/')->withErrors(['error' => 'Could not identify your organization. Please try connecting again.']);
+        }
+
+        session()->forget('qb_oauth_tenant_id');
+
+        $tenant = \App\Models\Tenant::find($tenantId);
+        if (!$tenant) {
+            return redirect('/')->withErrors(['error' => 'Organization not found.']);
+        }
+
+        // Bind tenant so HasTenant scopes work correctly
+        app()->instance('tenant', $tenant);
+
+        try {
+            $this->qbService->exchangeCodeForTokens($code, $realmId);
+            $this->audit->log('admin.qb.connected', null, [], ['realm_id' => $realmId], 'QuickBooks connected successfully');
+
+            $subdomain = 'https://' . $tenant->slug . '.' . config('app.root_domain');
+            return redirect($subdomain . '/admin/settings/membership')->with('qb_just_connected', true);
+        } catch (\Throwable $e) {
+            \Log::error('QB rootCallback error: ' . $e->getMessage());
+            $subdomain = 'https://' . $tenant->slug . '.' . config('app.root_domain');
+            return redirect($subdomain . '/admin/qb/connect')->withErrors(['error' => 'Failed to connect: ' . $e->getMessage()]);
         }
     }
 
@@ -69,16 +127,14 @@ class QbController extends Controller
 
     public function syncPull(Request $request)
     {
-        set_time_limit(0);
-        ini_set('max_execution_time', 0);
+        $forced   = $request->boolean('forced', false);
+        $label    = $forced ? 'Full sync' : 'Update sync';
+        $tenantId = app()->bound('tenant') ? app('tenant')->id : null;
 
-        $forced = $request->boolean('forced', false);
-        $label  = $forced ? 'Full sync' : 'Update sync';
+        DailyQuickBooksSync::dispatch($forced, auth()->id(), $tenantId);
 
-        $job = new DailyQuickBooksSync($forced, auth()->id());
-        app()->call([$job, 'handle']);
-        $this->audit->log('admin.qb.sync.pull.triggered', null, [], ['forced' => $forced], "Manual QB pull sync triggered ({$label})");
-        return back()->with('success', "{$label} complete. Check the sync log below for results.");
+        $this->audit->log('admin.qb.sync.pull.triggered', null, [], ['forced' => $forced], "Manual QB pull sync queued ({$label})");
+        return back()->with('success', "{$label} queued. This may take several minutes — refresh the page to see results.");
     }
 
     public function syncPushFamily(int $id)

@@ -87,7 +87,7 @@ class QuickBooksService
         ]);
     }
 
-    public function getAuthorizationUrl(): string
+    public function getAuthorizationUrl(?int $tenantId = null): string
     {
         $oauth2Helper = new OAuth2LoginHelper(
             config('services.quickbooks.client_id'),
@@ -96,7 +96,12 @@ class QuickBooksService
             'com.intuit.quickbooks.accounting'
         );
 
-        return $oauth2Helper->getAuthorizationCodeURL();
+        $url   = $oauth2Helper->getAuthorizationCodeURL();
+        $state = base64_encode(json_encode(['tenant_id' => $tenantId]));
+
+        // Replace the SDK-generated state with ours (which carries tenant_id)
+        return preg_replace('/([?&])state=[^&]*/', '$1state=' . urlencode($state), $url)
+            ?: $url . '&state=' . urlencode($state);
     }
 
     public function exchangeCodeForTokens(string $code, string $realmId): QbConnection
@@ -681,12 +686,38 @@ class QuickBooksService
         return $error === null;
     }
 
+    public function resolveTypeFromQbLabel(string $typeName): string
+    {
+        if (!$typeName) {
+            return $this->defaultMembershipTypeSlug();
+        }
+
+        if (app()->bound('tenant')) {
+            $match = \App\Models\MembershipType::where('active', true)
+                ->get()
+                ->first(fn($mt) => $mt->matchesQbLabel($typeName));
+
+            if ($match) return $match->slug;
+        }
+
+        return $this->defaultMembershipTypeSlug();
+    }
+
+    private function defaultMembershipTypeSlug(): string
+    {
+        if (app()->bound('tenant')) {
+            $donor = \App\Models\MembershipType::where('is_donor', true)->where('active', true)->first();
+            if ($donor) return $donor->slug;
+        }
+        return 'donor';
+    }
+
     public function mapQbCustomerToFamily(object $customer, array $customerTypes = []): array
     {
         // CustomerTypeRef is a plain string ID in this SDK version
-        $typeId         = (string)($customer->CustomerTypeRef ?? '');
-        $typeName       = $typeId ? ($customerTypes[$typeId] ?? '') : '';
-        $membershipType = MembershipType::fromQbCustomerType($typeName);
+        $typeId       = (string)($customer->CustomerTypeRef ?? '');
+        $typeName     = $typeId ? ($customerTypes[$typeId] ?? '') : '';
+        $membershipTypeSlug = $this->resolveTypeFromQbLabel($typeName);
 
         // Email may be comma-separated — split into individual addresses
         $emailStr = $customer->PrimaryEmailAddr->Address ?? null;
@@ -704,7 +735,7 @@ class QuickBooksService
                 'city'                => $customer->BillAddr->City ?? null,
                 'state'               => $customer->BillAddr->CountrySubDivisionCode ?? null,
                 'zip'                 => $customer->BillAddr->PostalCode ?? null,
-                'membership_type'     => $membershipType->value,
+                'membership_type'     => $membershipTypeSlug,
                 'qb_customer_id'      => $customer->Id,
                 'qb_sync_token'       => $customer->SyncToken ?? null,
                 'outstanding_balance' => (float)($customer->Balance ?? 0),

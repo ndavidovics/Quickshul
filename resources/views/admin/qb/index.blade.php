@@ -22,6 +22,26 @@
 </div>
 @endif
 
+{{-- Membership mapping warning --}}
+@if($isConnected && $unmappedTypes->count())
+<div style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.35);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:flex-start;gap:0.875rem">
+    <span style="font-size:1.25rem;line-height:1">⚠️</span>
+    <div style="flex:1">
+        <div style="font-weight:600;font-size:0.9rem;color:var(--gold);margin-bottom:0.3rem">Membership types not mapped to QuickBooks</div>
+        <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.65rem">
+            The following {{ $unmappedTypes->count() === 1 ? 'type has' : 'types have' }} no QuickBooks customer type mapping.
+            Without mappings, synced families will default to <em>donor</em> regardless of their QB type.
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.75rem">
+            @foreach($unmappedTypes as $t)
+                <span style="background:rgba(201,168,76,0.12);color:var(--gold);border:1px solid rgba(201,168,76,0.25);border-radius:4px;padding:0.15rem 0.55rem;font-size:0.78rem;font-family:monospace">{{ $t->label }}</span>
+            @endforeach
+        </div>
+        <a href="{{ route('admin.membership-types.index') }}" class="btn btn-gold btn-sm">Set Up Membership Mapping →</a>
+    </div>
+</div>
+@endif
+
 {{-- Status cards --}}
 <div class="grid-3" style="margin-bottom:1.5rem">
     <div class="stat-card">

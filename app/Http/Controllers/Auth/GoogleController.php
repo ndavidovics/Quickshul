@@ -11,29 +11,31 @@ class GoogleController extends Controller
 {
     public function redirect()
     {
-        // Pass tenant_id in state so callback can scope the user lookup
         $tenantId = app()->bound('tenant') ? app('tenant')->id : null;
-        $state = base64_encode(json_encode(['tenant_id' => $tenantId]));
 
-        return Socialite::driver('google')
-            ->with(['state' => $state])
-            ->redirect();
+        // Store tenant_id server-side so the callback can't be forged via state param
+        session(['google_oauth_tenant_id' => $tenantId]);
+
+        return Socialite::driver('google')->redirect();
     }
 
     public function callback()
     {
         $googleUser = Socialite::driver('google')->stateless()->user();
 
-        // Decode state to recover tenant_id
-        $state    = request()->input('state', '');
-        $stateData = $state ? json_decode(base64_decode($state), true) : [];
-        $tenantId  = $stateData['tenant_id'] ?? null;
+        // Read tenant_id from session (set before the OAuth redirect)
+        $tenantId = session()->pull('google_oauth_tenant_id');
 
-        $query = User::where('email', $googleUser->getEmail());
-        if ($tenantId) {
-            $query->where('tenant_id', $tenantId);
+        if (! $tenantId) {
+            // No session — OAuth flow started without a valid tenant context
+            return redirect('/login')->withErrors([
+                'email' => 'Sign-in session expired. Please try again.',
+            ]);
         }
-        $user = $query->first();
+
+        $user = User::where('email', $googleUser->getEmail())
+            ->where('tenant_id', $tenantId)
+            ->first();
 
         if (! $user) {
             return redirect('/login')->withErrors([

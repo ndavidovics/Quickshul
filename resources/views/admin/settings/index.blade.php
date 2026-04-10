@@ -2,8 +2,13 @@
 @section('title', 'Settings')
 
 @section('content')
-<div class="page-title" style="margin-bottom:0.25rem">Settings</div>
-<div class="page-subtitle" style="margin-bottom:2rem">Organization profile and integration settings</div>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:0.75rem">
+    <div>
+        <div class="page-title" style="margin-bottom:0.1rem">Settings</div>
+        <div class="page-subtitle" style="margin-bottom:0">Organization profile and integration settings</div>
+    </div>
+    <a href="{{ route('admin.membership-types.index') }}" class="btn btn-outline btn-sm">⚙ Membership Types &amp; QB Mapping</a>
+</div>
 
 {{-- ── Organization Profile ─────────────────────────────────── --}}
 <div class="card" style="margin-bottom:1.5rem">
@@ -180,7 +185,7 @@
 </div>
 
 {{-- ── QuickBooks ────────────────────────────────────────────── --}}
-<div class="card" style="margin-bottom:1.5rem">
+<div id="quickbooks" class="card" style="margin-bottom:1.5rem">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
         <div style="display:flex;align-items:center;gap:0.6rem">
             <span style="font-size:1.1rem">📊</span>

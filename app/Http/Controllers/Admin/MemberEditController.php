@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\MembershipType;
+use App\Models\MembershipType;
 use App\Http\Controllers\Controller;
 use App\Models\Family;
 use App\Models\FamilyEmail;
@@ -32,7 +32,7 @@ class MemberEditController extends Controller
 
         return view('admin.members.edit', [
             'family'          => $family,
-            'membershipTypes' => MembershipType::cases(),
+            'membershipTypes' => MembershipType::where('active', true)->orderBy('sort_order')->get(),
             'usersByEmail'    => $usersByEmail,
         ]);
     }
@@ -49,7 +49,7 @@ class MemberEditController extends Controller
             'state'           => 'nullable|string|max:2',
             'zip'             => 'nullable|string|max:10',
             'phone'           => 'nullable|string|max:30',
-            'membership_type' => 'required|in:' . implode(',', array_column(MembershipType::cases(), 'value')),
+            'membership_type' => 'required|in:' . MembershipType::where('active', true)->pluck('slug')->implode(','),
             'member_since'    => 'nullable|date',
             'total_pledged'   => 'nullable|numeric|min:0',
             'notes'           => 'nullable|string',
@@ -161,11 +161,17 @@ class MemberEditController extends Controller
         $existingUser = User::where('email', $request->email)->first();
 
         if (!$existingUser) {
-            User::create([
+            $newUser = User::create([
                 'name'      => $family->name,
                 'email'     => $request->email,
                 'family_id' => $familyId,
-                'password'  => Hash::make('Torah613!'),
+                'tenant_id' => app('tenant')->id,
+                'password'  => \Illuminate\Support\Str::password(32), // random; user must reset
+            ]);
+            // Send password reset email so they can set their own password
+            \Illuminate\Support\Facades\Password::sendResetLink([
+                'email'     => $request->email,
+                'tenant_id' => app('tenant')->id,
             ]);
             $userCreated = true;
         } elseif (!$existingUser->family_id) {
@@ -176,7 +182,7 @@ class MemberEditController extends Controller
         $this->audit->log('family.email.added', $family, [], ['email' => $request->email], "Added email {$request->email} to {$family->name}");
 
         $msg = $userCreated
-            ? 'Email added and login account created for ' . $request->email . ' (default password set).'
+            ? 'Email added and a login invitation was sent to ' . $request->email . '.'
             : 'Email added.';
 
         return redirect()->route('admin.members.edit', $familyId)->with('success', $msg);

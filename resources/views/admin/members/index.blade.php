@@ -7,8 +7,11 @@
         <h1 class="page-title">Members & Donors</h1>
         <p class="page-subtitle" style="margin-bottom:0">{{ $families->total() }} accounts</p>
     </div>
-    <a href="{{ route('admin.members.export') }}?{{ http_build_query(request()->only(['search','membership_type','has_balance'])) }}"
-       class="btn btn-outline">⬇ Export CSV</a>
+    <div style="display:flex;gap:0.5rem">
+        <a href="{{ route('admin.members.import') }}" class="btn btn-outline">⬆ Import</a>
+        <a href="{{ route('admin.members.export') }}?{{ http_build_query(request()->only(['search','membership_type','has_balance'])) }}"
+           class="btn btn-outline">⬇ Export CSV</a>
+    </div>
 </div>
 
 {{-- Filters --}}
@@ -21,9 +24,9 @@
             <select name="membership_type" class="form-control">
                 <option value="">All types</option>
                 <option value="all_members" {{ request('membership_type') === 'all_members' ? 'selected' : '' }}>All Members (excl. Donors)</option>
-                @foreach($membershipTypes as $type)
-                    <option value="{{ $type->value }}" {{ request('membership_type') === $type->value ? 'selected' : '' }}>
-                        {{ $type->label() }}
+                @foreach($membershipTypes as $slug => $type)
+                    <option value="{{ $slug }}" {{ request('membership_type') === $slug ? 'selected' : '' }}>
+                        {{ $type->label }}
                     </option>
                 @endforeach
             </select>
@@ -71,7 +74,7 @@
                 <td class="text-sm text-muted">
                     {{ $f->emails->pluck('email')->implode(', ') ?: '—' }}
                 </td>
-                <td><span class="badge badge-muted">{{ $f->membership_type->label() }}</span></td>
+                <td><span class="badge badge-muted">{{ $membershipTypes[$f->membership_type]?->label ?? $f->membership_type }}</span></td>
                 <td>
                     @if($f->outstanding_balance > 0)
                         <span style="color:var(--gold);font-weight:600">${{ number_format($f->outstanding_balance, 2) }}</span>

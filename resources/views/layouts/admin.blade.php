@@ -220,6 +220,17 @@
     @yield('styles')
 </head>
 <body>
+    @if(session('impersonating'))
+    <div style="background:#b45309;color:#fff;text-align:center;padding:0.5rem 1rem;font-size:0.82rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:1rem">
+        <span>🎭 Impersonating {{ auth()->user()->name }} on {{ app('tenant')->name }}</span>
+        <form method="POST" action="{{ route('impersonate.stop') }}" style="display:inline">
+            @csrf
+            <button type="submit" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;padding:0.2rem 0.75rem;border-radius:5px;font-size:0.75rem;cursor:pointer;font-family:inherit">
+                ✕ Stop Impersonating
+            </button>
+        </form>
+    </div>
+    @endif
     <div class="admin-topbar">
         <div style="display:flex;align-items:center">
             <button class="hamburger" id="sidebar-toggle" aria-label="Toggle menu">
@@ -264,14 +275,19 @@
                     <span class="sidebar-icon">📄</span> Pledges
                 </a>
             </div>
-            @if($tenant->qb_enabled ?? false)
             <div class="sidebar-section">
                 <div class="sidebar-label">Integrations</div>
-                <a href="{{ route('admin.qb') }}" class="sidebar-link {{ request()->routeIs('admin.qb*') ? 'active' : '' }}">
-                    <span class="sidebar-icon">📊</span> QuickBooks Sync
-                </a>
+                @if($tenant->qb_enabled ?? false)
+                    <a href="{{ route('admin.qb') }}" class="sidebar-link {{ request()->routeIs('admin.qb*') ? 'active' : '' }}">
+                        <span class="sidebar-icon">📊</span> QuickBooks Sync
+                    </a>
+                @else
+                    <a href="{{ route('admin.settings') }}#quickbooks" class="sidebar-link" style="opacity:0.5">
+                        <span class="sidebar-icon">📊</span> QuickBooks
+                        <span style="font-size:0.65rem;margin-left:auto;background:rgba(201,168,76,0.2);color:var(--gold);border-radius:4px;padding:0.1rem 0.35rem">enable</span>
+                    </a>
+                @endif
             </div>
-            @endif
             <div class="sidebar-section">
                 <div class="sidebar-label">Communications</div>
                 <a href="{{ route('admin.emails') }}" class="sidebar-link {{ request()->routeIs('admin.emails*') ? 'active' : '' }}">
@@ -296,7 +312,10 @@
                 <a href="{{ route('admin.users') }}" class="sidebar-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}">
                     <span class="sidebar-icon">🔑</span> User Management
                 </a>
-                <a href="{{ route('admin.settings') }}" class="sidebar-link {{ request()->routeIs('admin.settings*') ? 'active' : '' }}">
+                <a href="{{ route('admin.membership-types.index') }}" class="sidebar-link {{ request()->routeIs('admin.membership-types*') ? 'active' : '' }}">
+                    <span class="sidebar-icon">🏷️</span> Membership Types
+                </a>
+                <a href="{{ route('admin.settings') }}" class="sidebar-link {{ request()->routeIs('admin.settings') || request()->routeIs('admin.settings.profile') || request()->routeIs('admin.settings.gmail*') || request()->routeIs('admin.settings.paypal') || request()->routeIs('admin.settings.qb*') ? 'active' : '' }}">
                     <span class="sidebar-icon">⚙️</span> Settings
                 </a>
             </div>

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\MembershipType;
 use App\Http\Controllers\Controller;
 use App\Models\Family;
+use App\Models\MembershipType;
 use Illuminate\Http\Request;
 
 class MembersController extends Controller
@@ -17,7 +17,7 @@ class MembersController extends Controller
 
         return view('admin.members.index', [
             'families'        => $families,
-            'membershipTypes' => MembershipType::cases(),
+            'membershipTypes' => MembershipType::where('active', true)->orderBy('sort_order')->get()->keyBy('slug'),
         ]);
     }
 
@@ -33,7 +33,7 @@ class MembersController extends Controller
                 fputcsv($out, [
                     $f->name,
                     $emails,
-                    $f->membership_type->label(),
+                    $f->membershipType?->label ?? $f->membership_type,
                     $f->phone ?? '',
                     $f->address ?? '',
                     $f->city ?? '',
@@ -56,7 +56,8 @@ class MembersController extends Controller
 
         if ($type = $request->membership_type) {
             if ($type === 'all_members') {
-                $query->where('membership_type', '!=', \App\Enums\MembershipType::Donor->value);
+                $donorSlugs = MembershipType::where('is_donor', true)->pluck('slug');
+                $query->whereNotIn('membership_type', $donorSlugs);
             } else {
                 $query->where('membership_type', $type);
             }

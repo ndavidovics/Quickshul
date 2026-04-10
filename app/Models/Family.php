@@ -42,6 +42,7 @@ class Family extends Model
             'total_paid'          => 'decimal:2',
             'outstanding_balance' => 'decimal:2',
             'qb_last_sync_at'     => 'datetime',
+
         ];
     }
 

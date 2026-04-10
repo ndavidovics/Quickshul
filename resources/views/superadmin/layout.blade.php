@@ -184,6 +184,15 @@
                 <a href="{{ route('superadmin.index') }}" class="sidebar-link {{ request()->routeIs('superadmin.index') || request()->routeIs('superadmin.tenants.*') ? 'active' : '' }}">
                     🏛 Tenants
                 </a>
+                <a href="{{ route('superadmin.jobs.index') }}" class="sidebar-link {{ request()->routeIs('superadmin.jobs.*') ? 'active' : '' }}">
+                    📋 Queue Jobs
+                </a>
+                <a href="{{ route('superadmin.health.index') }}" class="sidebar-link {{ request()->routeIs('superadmin.health.*') ? 'active' : '' }}">
+                    💚 System Health
+                </a>
+                <a href="{{ route('superadmin.platform.settings') }}" class="sidebar-link {{ request()->routeIs('superadmin.platform.*') ? 'active' : '' }}">
+                    ⚙️ Platform Settings
+                </a>
             </div>
         </aside>
 
@@ -193,6 +202,9 @@
             @endif
             @if(session('info'))
                 <div class="alert alert-info">{{ session('info') }}</div>
+            @endif
+            @if(session('error'))
+                <div class="alert alert-error">{{ session('error') }}</div>
             @endif
             @if($errors->any())
                 <div class="alert alert-error">{{ $errors->first() }}</div>

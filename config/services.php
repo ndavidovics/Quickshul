@@ -39,6 +39,13 @@ return [
         ],
     ],
 
+    'platform_gmail' => [
+        'access_token'  => env('PLATFORM_GMAIL_ACCESS_TOKEN'),
+        'refresh_token' => env('PLATFORM_GMAIL_REFRESH_TOKEN'),
+        'email'         => env('PLATFORM_GMAIL_EMAIL', 'noreply@quickshul.com'),
+        'name'          => env('PLATFORM_GMAIL_NAME', 'QuickShul'),
+    ],
+
     'google' => [
         'client_id'      => env('GOOGLE_CLIENT_ID'),
         'client_secret'  => env('GOOGLE_CLIENT_SECRET'),

@@ -27,6 +27,13 @@
     </div>
 
     <div class="flex gap-2">
+        @if($tenant->status === 'active' && !$tenant->deleted_at && $admins->isNotEmpty())
+        <form method="POST" action="{{ route('superadmin.tenants.impersonate', $tenant->id) }}"
+              onsubmit="return confirm('Log in as {{ addslashes($admins->first()->name) }} on {{ $tenant->slug }}.quickshul.com?')">
+            @csrf
+            <button type="submit" class="btn btn-warning">🎭 Impersonate</button>
+        </form>
+        @endif
         @if($tenant->status !== 'active' && !$tenant->deleted_at)
         <form method="POST" action="{{ route('superadmin.tenants.activate', $tenant->id) }}">
             @csrf
@@ -156,5 +163,41 @@
         <div class="text-muted text-sm" style="margin-bottom:0.2rem">Onboarding Step</div>
         <div>{{ $tenant->onboarding_step ?? '—' }}</div>
     </div>
+</div>
+
+{{-- Admin Users --}}
+<div class="card">
+    <div class="card-title">Admin Users</div>
+    @if($admins->isEmpty())
+        <p class="text-muted text-sm">No admin users found for this tenant.</p>
+    @else
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Last Login</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach($admins as $admin)
+        <tr>
+            <td style="font-weight:500;color:#fff">{{ $admin->name }}</td>
+            <td class="text-sm">{{ $admin->email }}</td>
+            <td class="text-muted text-sm" style="white-space:nowrap">
+                {{ $admin->last_login_at ? \Carbon\Carbon::parse($admin->last_login_at)->diffForHumans() : 'Never' }}
+            </td>
+            <td>
+                <form method="POST" action="{{ route('superadmin.tenants.send-invite', [$tenant->id, $admin->id]) }}">
+                    @csrf
+                    <button type="submit" class="btn btn-outline btn-sm">Send Login Invite</button>
+                </form>
+            </td>
+        </tr>
+        @endforeach
+        </tbody>
+    </table>
+    @endif
 </div>
 @endsection

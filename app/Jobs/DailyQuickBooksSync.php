@@ -25,16 +25,25 @@ class DailyQuickBooksSync implements ShouldQueue
 {
     use Queueable;
 
-    public int $timeout = 300;
-    public int $tries   = 3;
+    public int $timeout = 1800; // 30 min — full sync can be large
+    public int $tries   = 1;   // don't retry; a partial sync could cause conflicts
 
     public function __construct(
         public readonly bool $forced = false,
-        public readonly ?int $triggeredByUserId = null
+        public readonly ?int $triggeredByUserId = null,
+        public readonly ?int $tenantId = null
     ) {}
 
     public function handle(QuickBooksService $qbService, AuditService $audit): void
     {
+        // Bind tenant so HasTenant global scopes work in the queue worker context
+        if ($this->tenantId && !app()->bound('tenant')) {
+            $tenant = \App\Models\Tenant::find($this->tenantId);
+            if ($tenant) {
+                app()->instance('tenant', $tenant);
+            }
+        }
+
         if (!$qbService->isConnected()) {
             Log::warning('DailyQuickBooksSync: QB not connected, skipping.');
             return;

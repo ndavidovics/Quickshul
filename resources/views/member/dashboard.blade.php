@@ -6,7 +6,7 @@
     <div>
         <h1 class="page-title">Shalom, {{ auth()->user()->name }}</h1>
         <p class="page-subtitle" style="margin-bottom:0">
-            @if($family) {{ $family->name }} Family &mdash; {{ $family->membership_type->label() }}
+            @if($family) {{ $family->name }} Family &mdash; {{ $family->membershipType?->label ?? $family->membership_type }}
             @else No family account linked yet. Contact the office.
             @endif
         </p>

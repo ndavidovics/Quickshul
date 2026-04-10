@@ -29,7 +29,7 @@
             <div>
                 <div class="text-sm text-muted" style="margin-bottom:0.2rem">Family Account</div>
                 <div style="font-weight:500">{{ $family->name }}</div>
-                <div class="text-sm text-muted">{{ $family->membership_type->label() }}</div>
+                <div class="text-sm text-muted">{{ $family->membershipType?->label ?? $family->membership_type }}</div>
             </div>
             @endif
         </div>

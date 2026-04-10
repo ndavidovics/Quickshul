@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\YahrtzeitController;
 use App\Http\Controllers\Admin\CalendarController;
 use App\Http\Controllers\Admin\FinancialsController;
+use App\Http\Controllers\Admin\ImportController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\SuperAdmin\TenantController as SuperAdminTenantController;
 use Illuminate\Support\Facades\Route;
@@ -42,13 +43,60 @@ Route::middleware('auth')->group(function () {
     Route::get('/register/step4', [RegistrationController::class, 'showDone'])->name('register.step4');
 });
 
+// Super admin login (no tenant, no super_admin middleware — it's the login page)
+Route::get('/superadmin/login', function () {
+    if (auth()->check() && auth()->user()->is_super_admin) {
+        return redirect()->route('superadmin.index');
+    }
+    return view('superadmin.login');
+})->name('superadmin.login');
+Route::post('/superadmin/login', [App\Http\Controllers\Auth\LoginController::class, 'login'])
+    ->name('superadmin.login.submit')
+    ->middleware('throttle:5,1');
+
+// Platform Gmail OAuth callback (no super_admin middleware — Google redirects here unauthenticated)
+Route::middleware('auth')->get('/auth/platform-gmail/callback',
+    [App\Http\Controllers\SuperAdmin\PlatformSettingsController::class, 'gmailCallback']
+)->name('superadmin.platform.gmail.callback');
+
 Route::middleware(['auth', 'super_admin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/', [SuperAdminTenantController::class, 'index'])->name('index');
     Route::get('/tenants/{id}', [SuperAdminTenantController::class, 'show'])->name('tenants.show');
     Route::post('/tenants/{id}/activate', [SuperAdminTenantController::class, 'activate'])->name('tenants.activate');
     Route::post('/tenants/{id}/suspend', [SuperAdminTenantController::class, 'suspend'])->name('tenants.suspend');
     Route::delete('/tenants/{id}', [SuperAdminTenantController::class, 'destroy'])->name('tenants.destroy');
+    Route::post('/tenants/{tenantId}/send-invite/{userId}', [SuperAdminTenantController::class, 'sendInvite'])->name('tenants.send-invite');
+
+    // Impersonation
+    Route::post('/tenants/{id}/impersonate', [App\Http\Controllers\SuperAdmin\ImpersonateController::class, 'start'])->name('tenants.impersonate');
+
+    // Failed Jobs
+    Route::get('/jobs', [App\Http\Controllers\SuperAdmin\JobsController::class, 'index'])->name('jobs.index');
+    Route::post('/jobs/{id}/retry', [App\Http\Controllers\SuperAdmin\JobsController::class, 'retry'])->name('jobs.retry');
+    Route::delete('/jobs/{id}', [App\Http\Controllers\SuperAdmin\JobsController::class, 'destroy'])->name('jobs.destroy');
+    Route::post('/jobs/flush', [App\Http\Controllers\SuperAdmin\JobsController::class, 'destroyAll'])->name('jobs.flush');
+
+    // System Health
+    Route::get('/health', [App\Http\Controllers\SuperAdmin\HealthController::class, 'index'])->name('health.index');
+
+    // Platform settings
+    Route::get('/platform', [App\Http\Controllers\SuperAdmin\PlatformSettingsController::class, 'index'])->name('platform.settings');
+    Route::get('/platform/gmail/connect', [App\Http\Controllers\SuperAdmin\PlatformSettingsController::class, 'connectGmail'])->name('platform.gmail.connect');
+    Route::post('/platform/gmail/disconnect', [App\Http\Controllers\SuperAdmin\PlatformSettingsController::class, 'disconnectGmail'])->name('platform.gmail.disconnect');
+    Route::post('/platform/gmail/test', [App\Http\Controllers\SuperAdmin\PlatformSettingsController::class, 'testEmail'])->name('platform.gmail.test');
 });
+
+// Impersonation consumer — lives on tenant subdomains, requires auth but NOT super_admin
+Route::middleware('auth')->get('/do-impersonate/{token}',
+    [App\Http\Controllers\ImpersonateConsumeController::class, 'consume']
+)->name('impersonate.consume');
+
+// Stop impersonation (clears session flag, returns to super admin)
+Route::middleware('auth')->post('/stop-impersonate', function () {
+    $returnUrl = session()->pull('impersonation_return_url', route('superadmin.index'));
+    session()->forget('impersonating');
+    return redirect($returnUrl);
+})->name('impersonate.stop');
 
 // --- Public ---
 Route::get('/', function () {
@@ -63,20 +111,26 @@ Route::get('/', function () {
 Route::get('/memorial-board', [App\Http\Controllers\MemorialController::class, 'index'])->name('memorial');
 Route::get('/memorial-board/slide/{n}', [App\Http\Controllers\MemorialController::class, 'slide'])->name('memorial.slide');
 Route::get('/login', [LoginController::class, 'show'])->name('login');
-Route::post('/login', [LoginController::class, 'login']);
+Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:5,1');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 // Password reset routes
 Route::get('/forgot-password', [PasswordResetController::class, 'showForgotForm'])->name('password.request');
-Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])->name('password.email');
+Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])->name('password.email')->middleware('throttle:3,60');
 Route::get('/reset-password/{token}', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
-Route::post('/reset-password', [PasswordResetController::class, 'resetPassword'])->name('password.update');
+Route::post('/reset-password', [PasswordResetController::class, 'resetPassword'])->name('password.update')->middleware('throttle:5,10');
 
 Route::get('/auth/google/redirect', [GoogleController::class, 'redirect'])->name('google.redirect');
-Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name('google.callback');
+Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name('google.callback')->middleware('throttle:20,1');
+
+// QuickBooks OAuth callback — lives on root domain (Intuit can't redirect to wildcard subdomains)
+Route::middleware('auth')->get('/auth/qb/callback', [App\Http\Controllers\Admin\QbController::class, 'rootCallback'])->name('qb.root.callback');
 Route::get('/apply', [MemberApplicationController::class, 'show'])->name('apply');
 Route::post('/apply', [MemberApplicationController::class, 'submit'])->name('apply.submit');
 Route::get('/apply/thank-you', [MemberApplicationController::class, 'thankYou'])->name('apply.thank-you');
+
+Route::get('/find', [App\Http\Controllers\FindPortalController::class, 'show'])->name('find-portal');
+Route::post('/find', [App\Http\Controllers\FindPortalController::class, 'submit'])->name('find-portal.submit')->middleware('throttle:5,10');
 
 Route::get('/agreement', fn() => view('legal.agreement'))->name('agreement');
 Route::get('/privacy', fn() => view('legal.privacy'))->name('privacy');
@@ -129,6 +183,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Members
     Route::get('/members', [MembersController::class, 'index'])->name('members');
     Route::get('/members/export', [MembersController::class, 'export'])->name('members.export');
+    Route::get('/members/import', [ImportController::class, 'show'])->name('members.import');
+    Route::post('/members/import/preview', [ImportController::class, 'preview'])->name('members.import.preview');
+    Route::post('/members/import/process', [ImportController::class, 'process'])->name('members.import.process');
+    Route::get('/members/import/template', [ImportController::class, 'template'])->name('members.import.template');
     Route::get('/members/{id}', [MembersController::class, 'show'])->name('members.show');
     Route::get('/members/{id}/payments/export', [MembersController::class, 'exportPayments'])->name('members.export.payments');
     Route::get('/members/{id}/pledges/export', [MembersController::class, 'exportPledges'])->name('members.export.pledges');
@@ -213,6 +271,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/settings/gmail/disconnect', [SettingsController::class, 'disconnectGmail'])->name('settings.gmail.disconnect');
     Route::post('/settings/paypal', [SettingsController::class, 'updatePaypal'])->name('settings.paypal');
     Route::post('/settings/qb/toggle', [SettingsController::class, 'toggleQb'])->name('settings.qb.toggle');
+
+    // Membership types
+    Route::get('/settings/membership', [App\Http\Controllers\Admin\MembershipTypeController::class, 'index'])->name('membership-types.index');
+    Route::post('/settings/membership', [App\Http\Controllers\Admin\MembershipTypeController::class, 'store'])->name('membership-types.store');
+    Route::put('/settings/membership/{id}', [App\Http\Controllers\Admin\MembershipTypeController::class, 'update'])->name('membership-types.update');
+    Route::delete('/settings/membership/{id}', [App\Http\Controllers\Admin\MembershipTypeController::class, 'destroy'])->name('membership-types.destroy');
 
     // Calendar
     Route::get('/calendar/settings', [CalendarController::class, 'settings'])->name('calendar.settings');

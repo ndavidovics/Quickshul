@@ -23,7 +23,7 @@
         <div class="card-title">Family Details</div>
         <table style="width:100%;font-size:0.875rem;border-collapse:collapse">
             @foreach([
-                'Membership Type' => $family->membership_type->label(),
+                'Membership Type' => $family->membershipType?->label ?? $family->membership_type,
                 'Member Since'    => $family->member_since?->format('F j, Y') ?? '—',
                 'Phone'           => $family->phone ?? '—',
                 'Address'         => trim(($family->address??'').', '.($family->city??'').($family->state?', '.$family->state:'').($family->zip?' '.$family->zip:''), ', '),

@@ -56,6 +56,9 @@ class LoginController extends Controller
 
     private function redirectAfterLogin(\App\Models\User $user): string
     {
+        if ($user->is_super_admin) {
+            return route('superadmin.index');
+        }
         if ($user->is_admin && ! $user->family_id) {
             return route('admin.members');
         }

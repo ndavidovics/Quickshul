@@ -676,7 +676,7 @@
     <div class="nav-right">
         <a href="#features" class="nav-link">Features</a>
         <a href="#how-it-works" class="nav-link">How It Works</a>
-        <a href="{{ route('login') }}" class="nav-link">Sign In</a>
+        <a href="{{ route('find-portal') }}" class="nav-link">Find Your Portal</a>
         <a href="{{ route('register') }}" class="btn btn-gold">Get Started Free</a>
     </div>
 </nav>
@@ -933,7 +933,7 @@
 
         <div class="pricing-actions">
             <a href="{{ route('register') }}" class="btn btn-gold btn-lg">Get Started Free</a>
-            <a href="https://github.com" target="_blank" class="btn btn-outline btn-lg">View on GitHub</a>
+            <a href="https://github.com/ndavidovics/Quickshul" target="_blank" class="btn btn-outline btn-lg">View on GitHub</a>
         </div>
     </div>
 </section>
@@ -964,8 +964,8 @@
 
     <nav class="footer-links">
         <a href="{{ route('register') }}" class="footer-link">Get Started</a>
-        <a href="{{ route('login') }}" class="footer-link">Sign In</a>
-        <a href="https://github.com" target="_blank" class="footer-link">GitHub</a>
+        <a href="{{ route('find-portal') }}" class="footer-link">Find Your Portal</a>
+        <a href="https://github.com/ndavidovics/Quickshul" target="_blank" class="footer-link">GitHub</a>
         <a href="/privacy" class="footer-link">Privacy Policy</a>
         <a href="/agreement" class="footer-link">Terms of Use</a>
     </nav>

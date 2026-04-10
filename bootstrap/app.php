@@ -12,6 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(\App\Http\Middleware\TenantMiddleware::class);
+        $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);
         $middleware->validateCsrfTokens(except: ['/paypal/webhook']);
         $middleware->alias([
             'admin'       => \App\Http\Middleware\AdminMiddleware::class,
