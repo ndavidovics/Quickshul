@@ -11,23 +11,30 @@ class GoogleController extends Controller
 {
     public function redirect()
     {
-        $tenantId = app()->bound('tenant') ? app('tenant')->id : null;
+        $tenantSlug = app()->bound('tenant') ? app('tenant')->slug : null;
 
-        // Store tenant_id server-side so the callback can't be forged via state param
-        session(['google_oauth_tenant_id' => $tenantId]);
-
-        return Socialite::driver('google')->redirect();
+        // Pass tenant slug via state param — session-based storage breaks because
+        // Google's callback lands on the root domain (quickshul.com), not the tenant
+        // subdomain, so the tenant's session cookie is inaccessible at callback time.
+        return Socialite::driver('google')
+            ->with(['state' => $tenantSlug ?? ''])
+            ->redirect();
     }
 
     public function callback()
     {
         $googleUser = Socialite::driver('google')->stateless()->user();
 
-        // Read tenant_id from session (set before the OAuth redirect)
-        $tenantId = session()->pull('google_oauth_tenant_id');
+        // Recover tenant slug from the state param we set in redirect()
+        $tenantSlug = request()->input('state');
+
+        $tenantId = null;
+        if ($tenantSlug) {
+            $tenant = \App\Models\Tenant::where('slug', $tenantSlug)->first();
+            $tenantId = $tenant?->id;
+        }
 
         if (! $tenantId) {
-            // No session — OAuth flow started without a valid tenant context
             return redirect('/login')->withErrors([
                 'email' => 'Sign-in session expired. Please try again.',
             ]);

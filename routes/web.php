@@ -20,8 +20,10 @@ use App\Http\Controllers\Admin\QbController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\YahrtzeitController;
 use App\Http\Controllers\Admin\CalendarController;
+use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\FinancialsController;
 use App\Http\Controllers\Admin\ImportController;
+use App\Http\Controllers\Admin\MemorialSettingsController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\SuperAdmin\TenantController as SuperAdminTenantController;
 use Illuminate\Support\Facades\Route;
@@ -142,6 +144,11 @@ Route::post('/paypal/webhook', [PayPalWebhookController::class, 'handle'])->name
 Route::get('/pay/{token}', [PublicPaymentController::class, 'show'])->name('public.pay');
 Route::post('/pay/{token}/create-order', [PublicPaymentController::class, 'createOrder'])->name('public.pay.create-order');
 Route::post('/pay/{token}/capture', [PublicPaymentController::class, 'captureOrder'])->name('public.pay.capture');
+
+// Public event payment pages (no auth required, but respects logged-in state)
+Route::get('/events/{tenantSlug}/{eventSlug}', [App\Http\Controllers\EventPaymentController::class, 'show'])->name('event.pay');
+Route::post('/events/{tenantSlug}/{eventSlug}/create-order', [App\Http\Controllers\EventPaymentController::class, 'createOrder'])->name('event.pay.create-order');
+Route::post('/events/{tenantSlug}/{eventSlug}/capture', [App\Http\Controllers\EventPaymentController::class, 'captureOrder'])->name('event.pay.capture');
 
 // --- Authenticated Member ---
 Route::middleware('auth')->group(function () {
@@ -277,6 +284,21 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/settings/membership', [App\Http\Controllers\Admin\MembershipTypeController::class, 'store'])->name('membership-types.store');
     Route::put('/settings/membership/{id}', [App\Http\Controllers\Admin\MembershipTypeController::class, 'update'])->name('membership-types.update');
     Route::delete('/settings/membership/{id}', [App\Http\Controllers\Admin\MembershipTypeController::class, 'destroy'])->name('membership-types.destroy');
+
+    // Events
+    Route::get('/events', [EventController::class, 'index'])->name('events.index');
+    Route::get('/events/create', [EventController::class, 'create'])->name('events.create');
+    Route::post('/events', [EventController::class, 'store'])->name('events.store');
+    Route::get('/events/{id}/edit', [EventController::class, 'edit'])->name('events.edit');
+    Route::put('/events/{id}', [EventController::class, 'update'])->name('events.update');
+    Route::post('/events/{id}/close', [EventController::class, 'close'])->name('events.close');
+    Route::post('/events/{id}/reopen', [EventController::class, 'reopen'])->name('events.reopen');
+    Route::delete('/events/{id}', [EventController::class, 'destroy'])->name('events.destroy');
+    Route::get('/events/{id}/payments', [EventController::class, 'payments'])->name('events.payments');
+
+    // Memorial Board
+    Route::get('/memorial/settings', [MemorialSettingsController::class, 'edit'])->name('memorial.settings');
+    Route::post('/memorial/settings', [MemorialSettingsController::class, 'update'])->name('memorial.settings.save');
 
     // Calendar
     Route::get('/calendar/settings', [CalendarController::class, 'settings'])->name('calendar.settings');

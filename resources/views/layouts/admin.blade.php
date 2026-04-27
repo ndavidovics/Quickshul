@@ -289,6 +289,12 @@
                 @endif
             </div>
             <div class="sidebar-section">
+                <div class="sidebar-label">Events</div>
+                <a href="{{ route('admin.events.index') }}" class="sidebar-link {{ request()->routeIs('admin.events*') ? 'active' : '' }}">
+                    <span class="sidebar-icon">🎟</span> Event Payments
+                </a>
+            </div>
+            <div class="sidebar-section">
                 <div class="sidebar-label">Communications</div>
                 <a href="{{ route('admin.emails') }}" class="sidebar-link {{ request()->routeIs('admin.emails*') ? 'active' : '' }}">
                     <span class="sidebar-icon">✉️</span> Email Reminders
@@ -298,6 +304,9 @@
                 <div class="sidebar-label">Calendar</div>
                 <a href="{{ route('admin.calendar.generate') }}" class="sidebar-link {{ request()->routeIs('admin.calendar.*') ? 'active' : '' }}">
                     <span class="sidebar-icon">📅</span> Calendar Builder
+                </a>
+                <a href="{{ route('admin.memorial.settings') }}" class="sidebar-link {{ request()->routeIs('admin.memorial*') ? 'active' : '' }}">
+                    <span class="sidebar-icon">🕍</span> Memorial Board
                 </a>
             </div>
             <div class="sidebar-section">

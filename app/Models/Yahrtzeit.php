@@ -22,6 +22,8 @@ class Yahrtzeit extends Model
         'hebrew_month',
         'hebrew_day',
         'notes',
+        'display',
+        'pin_to_end',
     ];
 
     protected function casts(): array
@@ -29,6 +31,8 @@ class Yahrtzeit extends Model
         return [
             'date_of_death'       => 'date',
             'hebrew_dod_override' => 'boolean',
+            'display'             => 'boolean',
+            'pin_to_end'          => 'boolean',
         ];
     }
 

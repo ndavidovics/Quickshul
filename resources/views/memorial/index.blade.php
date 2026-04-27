@@ -6,6 +6,7 @@
 <style>.yarmem { border: 7px solid yellow !important; }</style>
 <link rel="stylesheet" type="text/css" href="/memorial/assets/screen.css"/>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script>document.addEventListener('DOMContentLoaded', function() { document.body.style.zoom = window.innerHeight / 1080; });</script>
 </head>
 <body>
 <div id="main_box">
@@ -28,27 +29,33 @@
 
 <script>
 (function () {
-    var slideCount = {{ $slideCount }};
-    var slides = [];
-    for (var i = 1; i <= slideCount; i++) {
-        slides.push('/memorial-board/slide/' + i);
-    }
+    const slideCount = {{ $slideCount }};
+    const slideDuration = 8000;
+    let currentSlide = 1;
+    let timer = null;
 
-    function runCycle() {
-        $.each(slides, function (index, url) {
-            $('#right_side').delay(8000 * index).queue(function (nxt) {
-                $(this).load(url);
-                nxt();
-            });
+    function loadSlide(slideNumber) {
+        const url = '/memorial-board/slide/' + slideNumber;
+
+        $('#right_side').load(url, function (response, status) {
+            if (status !== 'success') {
+                console.error('Failed to load slide:', url);
+            }
+
+            timer = setTimeout(function () {
+                currentSlide++;
+
+                if (currentSlide > slideCount) {
+                    currentSlide = 1;
+                }
+
+                loadSlide(currentSlide);
+            }, slideDuration);
         });
     }
 
     $(document).ready(function () {
-        runCycle();
-        setInterval(function () {
-            $('#right_side').clearQueue();
-            runCycle();
-        }, 8000 * (slides.length + 1));
+        loadSlide(currentSlide);
     });
 })();
 </script>

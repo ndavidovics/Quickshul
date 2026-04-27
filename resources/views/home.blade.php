@@ -3,9 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuickShul — Modern Member Management for Your Shul</title>
-    <meta name="description" content="QuickShul is free, open-source synagogue management software. Member & family management, pledge tracking, email tools, calendar, and QuickBooks sync.">
+    <title>QuickShul — Free Synagogue Management Software</title>
+    <meta name="description" content="QuickShul is free, open-source synagogue management software. Member & family management, pledge tracking, email tools, Hebrew calendar, yahrtzeit reminders, and QuickBooks sync. Free forever.">
+    <meta name="keywords" content="synagogue management software, shul management software, Jewish community software, synagogue member portal, synagogue QuickBooks integration, free synagogue software, open source synagogue, congregation management, pledge tracking software">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+    <meta name="author" content="QuickShul">
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://quickshul.com/">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://quickshul.com/">
+    <meta property="og:site_name" content="QuickShul">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:title" content="QuickShul — Free Synagogue Management Software">
+    <meta property="og:description" content="Free, open-source synagogue management software. Member & family management, pledge tracking, email tools, Hebrew calendar, yahrtzeit reminders, and QuickBooks sync.">
+    <meta property="og:image" content="https://quickshul.com/img/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="QuickShul — Modern member management for your shul">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="QuickShul — Free Synagogue Management Software">
+    <meta name="twitter:description" content="Free, open-source synagogue management software. Member & family management, pledge tracking, email tools, Hebrew calendar, and QuickBooks sync.">
+    <meta name="twitter:image" content="https://quickshul.com/img/og-image.png">
+
+    <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/img/quickshul-icon.png">
+    <meta name="theme-color" content="#0d1829">
+
+    <!-- JSON-LD Structured Data -->
+    @verbatim
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://quickshul.com/#software",
+          "name": "QuickShul",
+          "url": "https://quickshul.com",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web",
+          "description": "Free, open-source synagogue management software. Member & family management, pledge tracking, email tools, Hebrew calendar, yahrtzeit reminders, and QuickBooks Online sync.",
+          "featureList": [
+            "Member and family management",
+            "Pledge tracking and online payments via PayPal",
+            "Email reminders and year-end giving statements via Gmail",
+            "Hebrew calendar and yahrtzeit reminders",
+            "QuickBooks Online integration",
+            "Google Sign-In for members"
+          ],
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "description": "Free forever — no per-seat fees, no feature paywalls"
+          },
+          "isAccessibleForFree": true,
+          "license": "https://github.com/ndavidovics/Quickshul",
+          "author": {
+            "@type": "Organization",
+            "name": "QuickShul",
+            "url": "https://quickshul.com"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://quickshul.com/#organization",
+          "name": "QuickShul",
+          "url": "https://quickshul.com",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://quickshul.com/img/quickshul-icon.png"
+          },
+          "description": "QuickShul provides free, open-source synagogue management software for Jewish communities."
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://quickshul.com/#website",
+          "url": "https://quickshul.com",
+          "name": "QuickShul",
+          "description": "Free synagogue management software",
+          "publisher": { "@id": "https://quickshul.com/#organization" }
+        }
+      ]
+    }
+    </script>
+    @endverbatim
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -681,6 +770,9 @@
     </div>
 </nav>
 
+<!-- ── Main Content ─────────────────────────────────────── -->
+<main>
+
 <!-- ── Hero ────────────────────────────────────────────── -->
 <section class="hero">
     <div class="hero-glow" aria-hidden="true"></div>
@@ -950,6 +1042,8 @@
     </div>
 </section>
 
+</main><!-- end main -->
+
 <!-- ── Footer ────────────────────────────────────────────── -->
 <footer>
     <div>
@@ -962,7 +1056,7 @@
         <p class="footer-copy" style="margin-top:0.4rem">Built with ♥ for Jewish communities</p>
     </div>
 
-    <nav class="footer-links">
+    <nav class="footer-links" aria-label="Footer navigation">
         <a href="{{ route('register') }}" class="footer-link">Get Started</a>
         <a href="{{ route('find-portal') }}" class="footer-link">Find Your Portal</a>
         <a href="https://github.com/ndavidovics/Quickshul" target="_blank" class="footer-link">GitHub</a>
