@@ -766,6 +766,7 @@
         <a href="#features" class="nav-link">Features</a>
         <a href="#how-it-works" class="nav-link">How It Works</a>
         <a href="{{ route('find-portal') }}" class="nav-link">Find Your Portal</a>
+        <a href="mailto:noam@nanovix.com" class="nav-link">Contact</a>
         <a href="{{ route('register') }}" class="btn btn-gold">Get Started Free</a>
     </div>
 </nav>
