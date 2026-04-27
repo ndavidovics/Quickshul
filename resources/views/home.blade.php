@@ -1054,6 +1054,7 @@
             <span class="footer-brand-text"><span class="logo-quick">Quick</span><span class="logo-shul">Shul</span></span>
         </a>
         <p class="footer-copy" style="margin-top:0.4rem">Built with ♥ for Jewish communities</p>
+        <p class="footer-copy" style="margin-top:0.25rem">Contact: <a href="mailto:noam@nanovix.com" style="color:inherit;text-decoration:underline">Noam Davidovics</a> &mdash; Memphis, TN</p>
     </div>
 
     <nav class="footer-links" aria-label="Footer navigation">
